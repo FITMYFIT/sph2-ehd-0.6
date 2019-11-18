@@ -1,0 +1,7 @@
+# -*-Makefile-*-
+
+#how to lanch the complier
+
+
+# useful (non-standard) flags
+CXXFLAGS += -g -Wall -O2

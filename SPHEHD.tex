@@ -1,0 +1,718 @@
+% Created 2019-10-19 Sat 10:46
+% Intended LaTeX compiler: pdflatex
+\documentclass[presentation]{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{grffile}
+\usepackage{longtable}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{textcomp}
+\usepackage{amssymb}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\usetheme{default}
+\author{stardiviner}
+\date{\today}
+\title{}
+\hypersetup{
+ pdfauthor={stardiviner},
+ pdftitle={},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 26.3 (Org mode 9.2.6)}, 
+ pdflang={English}}
+\begin{document}
+
+\begin{frame}{Outline}
+\tableofcontents
+\end{frame}
+
+\#include "SPHEHD.h"
+
+
+CSPHEHD::CSPHEHD()
+\{
+\}
+
+CSPHEHD::\textasciitilde{}CSPHEHD()
+\{
+\}
+
+void CSPHEHD::Solve(CRegion \& Region)
+\{
+  CSPHPt * PtiPtr,*PtjPtr;
+  CBasePt * BasePtPtr;
+  CKnl * KnlPtr;
+  double Exi,Exj;
+  double Eyi,Eyj;
+  double epsiloni, epsilonj;//epsilon of part
+  double kappai, kappaj;//kappa of part
+  double norm;
+  double normx,normy;
+  double normx1,normy1;
+  unsigned int IDi,IDj,ID2;
+
+//1.update eepsilon and ekappa
+//Lopez 2011 use an interpolation scheme to calculate transition value between the two fluid with VOF colour
+//here we try an direct interpolation using SPH, just like the interpolation of colour
+for (unsigned int i=0;i<Region.\textsubscript{PtPairList.size}();i++)
+  \{
+    // if(Region.\textsubscript{PtPairList}[i].\textsubscript{Type}!=enSphbndptpair\&\&Region.\textsubscript{PtPairList}[i].\textsubscript{Type}!=enSPHDumPtPair)
+    \{
+      PtiPtr=(CSPHPt*)Region.\textsubscript{PtPairList}[i].\textsubscript{PtiPtr};
+      PtjPtr=(CSPHPt*)Region.\textsubscript{PtPairList}[i].\textsubscript{PtjPtr};
+      KnlPtr=\&Region.\textsubscript{KnlList}[i];
+
+epsiloni=Region.\textsubscript{PartList}[PtiPtr->\textsubscript{PID}-1].\textsubscript{eEpsilon};
+epsilonj=Region.\textsubscript{PartList}[PtjPtr->\textsubscript{PID}-1].\textsubscript{eEpsilon};
+
+kappai=Region.\textsubscript{PartList}[PtiPtr->\textsubscript{PID}-1].\textsubscript{eKappa};
+kappaj=Region.\textsubscript{PartList}[PtjPtr->\textsubscript{PID}-1].\textsubscript{eKappa};
+
+PtiPtr->\textsubscript{eEpsilon}+=PtjPtr->\textsubscript{mrho}*KnlPtr->\textsubscript{W}*epsilonj;
+
+PtiPtr->\textsubscript{eKappa}+=PtjPtr->\textsubscript{mrho}*KnlPtr->\textsubscript{W}*kappaj;
+
+if(PtiPtr!=PtjPtr\&\&PtjPtr->\textsubscript{Type}==enSPHPt)
+  \{
+    PtjPtr->\textsubscript{eEpsilon}+=PtiPtr->\textsubscript{mrho}*KnlPtr->\textsubscript{W}*epsiloni;
+
+  PtjPtr->\textsubscript{eKappa}+=PtiPtr->\textsubscript{mrho}*KnlPtr->\textsubscript{W}*kappai;
+\}
+
+      if(PtjPtr->\textsubscript{Type}==enDumPt)
+        \{
+          PtjPtr->\textsubscript{eEpsilon}=epsilonj;
+          PtjPtr->\textsubscript{eKappa}=kappaj;
+        \}
+    \}
+  \}
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+\emph{/temp, specify epsilon and kappa from the part, without transient region between two fluid
+/} for(unsigned int i=0;i!=Region.\textsubscript{PtList.size}();++i)
+\emph{/ \{
+/}   BasePtPtr=\&Region.\textsubscript{PtList}[i];
+\emph{/   BasePtPtr->\textsubscript{eEpsilon}=Region.\textsubscript{PartList}[BasePtPtr->\textsubscript{PID}-1].\textsubscript{eEpsilon};
+/} \}
+//2.solve charge density conservation equ Lopez 2011 Equ(21)
+//2.1 solve deRho
+for (unsigned int i=0;i<Region.\textsubscript{PtPairList.size}();i++)
+  \{
+    if(Region.\textsubscript{PtPairList}[i].\textsubscript{Type}!=enSPHBndPtPair\&\&Region.\textsubscript{PtPairList}[i].\textsubscript{Type}!=enSPHDumPtPair)
+      \{
+        PtiPtr=(CSPHPt*)Region.\textsubscript{PtPairList}[i].\textsubscript{PtiPtr};
+        PtjPtr=(CSPHPt*)Region.\textsubscript{PtPairList}[i].\textsubscript{PtjPtr};
+        KnlPtr=\&Region.\textsubscript{KnlList}[i];
+
+if(Region.\textsubscript{ControlSPH}.\textsubscript{RunMod}==1)//Explicit
+  \{
+
+PtiPtr->\textsubscript{deRho}-=PtjPtr->\textsubscript{mrho}*((PtiPtr->\textsubscript{eKappa}*PtjPtr->\textsubscript{eEx}+PtjPtr->\textsubscript{eKappa}*PtiPtr->\textsubscript{eEx})*KnlPtr->\textsubscript{Wx}
+                               +(PtiPtr->\textsubscript{eKappa}*PtjPtr->\textsubscript{eEy}+PtjPtr->\textsubscript{eKappa}*PtiPtr->\textsubscript{eEy})*KnlPtr->\textsubscript{Wy});
+PtiPtr->\textsubscript{deRho}-=PtjPtr->\textsubscript{mrho}*((PtiPtr->\textsubscript{eRho}*PtjPtr->\textsubscript{u}+PtjPtr->\textsubscript{eRho}*PtiPtr->\textsubscript{u})*KnlPtr->\textsubscript{Wx}
+                               +(PtiPtr->\textsubscript{eRho}*PtjPtr->\textsubscript{v}+PtjPtr->\textsubscript{eRho}*PtiPtr->\textsubscript{v})*KnlPtr->\textsubscript{Wy});
+
+if((PtiPtr!=PtjPtr)\&\&PtjPtr->\textsubscript{Type}==enSPHPt)
+  \{
+    PtjPtr->\textsubscript{deRho}+=PtiPtr->\textsubscript{mrho}*((PtjPtr->\textsubscript{eKappa}*PtiPtr->\textsubscript{eEx}+PtiPtr->\textsubscript{eKappa}*PtjPtr->\textsubscript{eEx})*KnlPtr->\textsubscript{Wx}
+                                   +(PtjPtr->\textsubscript{eKappa}*PtiPtr->\textsubscript{eEy}+PtiPtr->\textsubscript{eKappa}*PtjPtr->\textsubscript{eEy})*KnlPtr->\textsubscript{Wy});
+    PtjPtr->\textsubscript{deRho}+=PtiPtr->\textsubscript{mrho}*((PtjPtr->\textsubscript{eRho}*PtiPtr->\textsubscript{u}+PtiPtr->\textsubscript{eRho}*PtjPtr->\textsubscript{u})*KnlPtr->\textsubscript{Wx}
+                                   +(PtjPtr->\textsubscript{eRho}*PtiPtr->\textsubscript{v}+PtiPtr->\textsubscript{eRho}*PtjPtr->\textsubscript{v})*KnlPtr->\textsubscript{Wy});
+
+    \}
+\}
+
+      else//Implicit
+        \{
+          IDi=PtiPtr->\textsubscript{ID2};
+        \}
+    \}
+\}
+
+//2.2 update volume charge density eRho, rhoe n+1
+double DeltaT;
+DeltaT=Region.\textsubscript{ControlSPH}.\textsubscript{DeltaT};
+for(unsigned int i=0; i<Region.\textsubscript{PtList.size}();i++)
+  \{
+    BasePtPtr=\&Region.\textsubscript{PtList}[i];
+    if(BasePtPtr->\textsubscript{Type}==enSPHPt)
+      \{
+        BasePtPtr->\textsubscript{eRho}+=DeltaT*BasePtPtr->\textsubscript{deRho};
+      \}
+  \}
+
+//3. calculate electric field E
+//3.1 calculate φ, Lopez2011 Equ.(22),Poisson equ.
+\emph{/3.1.1 define and initialize the matrix A and right hand side b, here in order to use lapack, we use array instead of vector
+/}---------------------------------------------------------------------------------------------------------------------
+unsigned int PtNum=Region.\textsubscript{CalList.size}();
+//use laspack to solve linear equ.
+QMatrix LasA;//laspack amtrix A
+Vector Lasx,Lasb;//laspack vector, not std vector
+size\textsubscript{t} Dim=PtNum;
+
+char namea[]="A";
+char namex[]="x";
+char nameb[]="b";
+Q\textsubscript{Constr}(\&LasA, namea, Dim , False , Rowws, Normal , True );
+V\textsubscript{Constr}(\&Lasx, namex, Dim, Normal, True);
+V\textsubscript{Constr}(\&Lasb, nameb, Dim, Normal, True);
+
+//set the length of LasA, after q\textsubscript{setlen}, element will be set to 0
+//for i, some neighbor will not involved in calculation (if neighbor j is dumpt or not in calculate range)
+//so the length of row may larger than the element number, but it does not influence the result of Ax=b
+for(unsigned int i=0;i!=Region.\textsubscript{CalList.size}();++i)
+  \{
+    BasePtPtr=\&Region.\textsubscript{PtList}[Region.\textsubscript{CalList}[i]];
+
+Q\textsubscript{SetLen}(\&LasA, BasePtPtr->\textsubscript{ID2}, BasePtPtr->\textsubscript{NumNegbor});
+
+    Q\textsubscript{SetEntry}(\&LasA, BasePtPtr->\textsubscript{ID2}, 0, BasePtPtr->\textsubscript{ID2}, 0.0);//set the first one of row as i-i element
+  \}
+//set all components of lasvector 0
+V\textsubscript{SetAllCmp}(\&Lasb, 0.0);
+
+\emph{/3.1.1 done
+/}---------------------------------------------------------------------------------------------------------------------
+
+\emph{/3.1.2 contruct and solove Ax=b
+/}\[ - {\left( {{\rho _e}} \right)_a} = \sum\limits_b {\frac{{{m_b}}}{{{\rho _b}}}} ({\varepsilon _a} + {\varepsilon _b})({\phi _a} - {\phi _b})\frac{1}{{{r_{ab}}}}\frac{{{\partial _a}{W_{ab}}}}{{\partial {r_{ab}}}}\]
+//the source term, b
+for(unsigned int i=0;i!=Region.\textsubscript{CalList.size}();++i)
+  \{
+    BasePtPtr=\&Region.\textsubscript{PtList}[Region.\textsubscript{CalList}[i]];
+    V\textsubscript{AddCmp}(\&Lasb, BasePtPtr->\textsubscript{ID2}, -BasePtPtr->\textsubscript{eRho});
+  \}
+
+//the matrix A
+vector<unsigned int> icount;//element number of each row
+icount.resize(PtNum,1);//there is one element now, i-i, the first one of each row
+
+for(unsigned int i=0;i<Region.\textsubscript{PtPairList.size}();i++)
+  \{
+    if(Region.\textsubscript{PtPairList}[i].\textsubscript{Type}==enSPHPtPair||Region.\textsubscript{PtPairList}[i].\textsubscript{Type}==enSPHDumPtPair)
+  \{
+        PtiPtr=(CSPHPt*)Region.\textsubscript{PtPairList}[i].\textsubscript{PtiPtr};
+        PtjPtr=(CSPHPt*)Region.\textsubscript{PtPairList}[i].\textsubscript{PtjPtr};
+        KnlPtr=\&Region.\textsubscript{KnlList}[i];
+
+//as (phi i-phi j ) is calculated,  so ptiptr=ptjptr makes no sense
+if(PtiPtr!=PtjPtr)
+  \{
+    IDi=PtiPtr->\textsubscript{ID2};
+    IDj=PtjPtr->\textsubscript{ID2};
+
+norm=(PtiPtr->\textsubscript{eEpsilon}+PtjPtr->\textsubscript{eEpsilon})*KnlPtr->\textsubscript{Ww};
+// norm=4*(PtiPtr->\textsubscript{eEpsilon}*PtjPtr->\textsubscript{eEpsilon})/(PtiPtr->\textsubscript{eEpsilon}+PtjPtr->\textsubscript{eEpsilon})*KnlPtr->\textsubscript{Ww};//Monaghan 2005 Equ(7.4)
+
+Q\textsubscript{AddVal}(\&LasA, IDi, 0, PtjPtr->\textsubscript{mrho}*norm);//the first one in row is i i
+
+if(PtjPtr->\textsubscript{Type}==enSPHPt)
+  \{
+    icount[IDi-1]++;
+
+Q\textsubscript{SetEntry}(\&LasA, IDi, icount[IDi-1]-1, IDj, -PtjPtr->\textsubscript{mrho}*norm);
+
+icount[IDj-1]++;
+
+Q\textsubscript{AddVal}(\&LasA, IDj, 0, PtiPtr->\textsubscript{mrho}*norm);//the first one in row j-j
+Q\textsubscript{SetEntry}(\&LasA, IDj, icount[IDj-1]-1, IDi, -PtiPtr->\textsubscript{mrho}*norm);
+
+\}
+
+            if(PtjPtr->\textsubscript{Type}==enDumPt)
+              \{
+                V\textsubscript{AddCmp}(\&Lasb, IDi, PtjPtr->\textsubscript{mrho}*norm*PtjPtr->\textsubscript{ePhi});
+              \}
+          \}
+      \}
+  \}
+icount.clear();
+
+SetRTCAccuracy(1e-8);
+V\textsubscript{SetAllCmp}(\&Lasx, 0.0);
+\emph{/ CGIter(\&LasA, \&Lasx, \&Lasb, 100, SSORPrecond,1.2);
+/} CGIter(\&LasA, \&Lasx, \&Lasb, 20, SSORPrecond,1.2);
+\emph{/ BiCGIter(\&LasA, \&Lasx, \&Lasb, 100, SSORPrecond,1.2);
+/} BiCGIter(\&LasA, \&Lasx, \&Lasb, 20, SSORPrecond,1.2);
+// BiCGSTABIter(\&LasA , \&Lasx, \&Lasb, 100, SSORPrecond,1.2);
+BiCGSTABIter(\&LasA, \&Lasx, \&Lasb, 100, SSORPrecond,1.2);//the 4th parameter 100, is the maxiter steps
+// outputV( Lasx,  "xxbicgs-20");
+//output2(LasA, Lasx, Lasb, "xxbicgs-ax=b");
+
+//set φ of particle from b
+for(unsigned int i=0;i!=Region.\textsubscript{CalList.size}();++i)
+  \{
+    BasePtPtr=\&Region.\textsubscript{PtList}[Region.\textsubscript{CalList}[i]];
+
+  BasePtPtr->\textsubscript{ePhi}=V\textsubscript{GetCmp}(\&Lasx, BasePtPtr->\textsubscript{ID2});
+\}
+
+Q\textsubscript{Destr}(\&LasA);
+V\textsubscript{Destr}(\&Lasx);
+V\textsubscript{Destr}(\&Lasb);
+
+//3.1.2 done
+\emph{/3.1 done
+/}---------------------------------------------------------------------------------------------------------------------
+//3.2 calculate E using CSPM, as the dirct scheme produce unacceptable errors
+//3.2.1 cspm coefficient matrix
+if(Region.\textsubscript{ControlSPH}.\textsubscript{CSPMIflag2}==0)
+  \{
+    \_CSPMEHD.GetCSPMGradCorctCoef(Region);//dummy particle involved
+  \}
+
+// //3.2.2 cspm source term
+vector<double> bx;//CSPM修正的源项
+vector<double> by;
+bx.resize(Region.\textsubscript{CalList.size}(),0.0);
+by.resize(Region.\textsubscript{CalList.size}(),0.0);
+for(unsigned int i=0;i<Region.\textsubscript{PtPairList.size}();i++)
+  \{
+    if(Region.\textsubscript{PtPairList}[i].\textsubscript{Type}==enSPHPtPair// ||Region.\textsubscript{PtPairList}[i].\textsubscript{Type}==enSPHDumPtPair
+       )
+      \{
+        PtiPtr=(CSPHPt*)Region.\textsubscript{PtPairList}[i].\textsubscript{PtiPtr};
+        PtjPtr=(CSPHPt*)Region.\textsubscript{PtPairList}[i].\textsubscript{PtjPtr};
+        KnlPtr=\&Region.\textsubscript{KnlList}[i];
+
+IDi=PtiPtr->\textsubscript{ID2};
+IDj=PtjPtr->\textsubscript{ID2};
+
+if(PtiPtr!=PtjPtr)
+  \{
+    bx[IDi-1]+=PtjPtr->\textsubscript{mrho}*(PtiPtr->\textsubscript{ePhi}-PtjPtr->\textsubscript{ePhi})*KnlPtr->\textsubscript{Wx};
+    by[IDi-1]+=PtjPtr->\textsubscript{mrho}*(PtiPtr->\textsubscript{ePhi}-PtjPtr->\textsubscript{ePhi})*KnlPtr->\textsubscript{Wy};
+
+          //particle j
+          if(PtjPtr->\textsubscript{Type}==enSPHPt)
+            \{
+              bx[IDj-1]+=PtiPtr->\textsubscript{mrho}*(PtiPtr->\textsubscript{ePhi}-PtjPtr->\textsubscript{ePhi})*KnlPtr->\textsubscript{Wx};
+              by[IDj-1]+=PtiPtr->\textsubscript{mrho}*(PtiPtr->\textsubscript{ePhi}-PtjPtr->\textsubscript{ePhi})*KnlPtr->\textsubscript{Wy};
+            \}
+        \}
+    \}
+\}
+
+//calculate CSPM corrected E=grad(phi)
+for(unsigned int i=0;i!=Region.\textsubscript{CalList.size}();++i)
+  \{
+    BasePtPtr=\&Region.\textsubscript{PtList}[Region.\textsubscript{CalList}[i]];
+    ID2=BasePtPtr->\textsubscript{ID2};
+
+  BasePtPtr->\textsubscript{eEx}=-(BasePtPtr->\textsubscript{CSPMAxx}*bx[ID2-1]+BasePtPtr->\textsubscript{CSPMAyx}*by[ID2-1]);
+  BasePtPtr->\textsubscript{eEy}=-(BasePtPtr->\textsubscript{CSPMAxy}*bx[ID2-1]+BasePtPtr->\textsubscript{CSPMAyy}*by[ID2-1]);
+\}
+
+bx.clear();
+by.clear();
+
+
+//3.3 calculate the accelerate caused by ehd force
+//fomulation details are in Richard's STUDY DIRARY "2019年9月13日星期五" part 4 (similar formulation with Lopez 2011 Equ32)
+\emph{/use CSPM
+/}---------------------------------------------------------------------------------------------------------------------
+//3.2 calculate electric force Fe using CSPM
+//3.2.1 cspm coefficient matrix
+if(Region.\textsubscript{ControlSPH}.\textsubscript{CSPMIflag2}==0)
+  \{
+    \_CSPMEHD.GetCSPMGradCorctCoef(Region);//dummy particle involved
+  \}
+
+//cspm source term
+bx.resize(Region.\textsubscript{CalList.size}(),0.0);
+by.resize(Region.\textsubscript{CalList.size}(),0.0);
+for(unsigned int i=0;i<Region.\textsubscript{PtPairList.size}();i++)
+  \{
+    if(Region.\textsubscript{PtPairList}[i].\textsubscript{Type}==enSPHPtPair
+       // ||Region.\textsubscript{PtPairList}[i].\textsubscript{Type}==enSPHDumPtPair
+       )
+      \{
+        PtiPtr=(CSPHPt*)Region.\textsubscript{PtPairList}[i].\textsubscript{PtiPtr};
+        PtjPtr=(CSPHPt*)Region.\textsubscript{PtPairList}[i].\textsubscript{PtjPtr};
+        KnlPtr=\&Region.\textsubscript{KnlList}[i];
+
+IDi=PtiPtr->\textsubscript{ID2};
+IDj=PtjPtr->\textsubscript{ID2};
+
+epsiloni=PtiPtr->\textsubscript{eEpsilon};
+epsilonj=PtjPtr->\textsubscript{eEpsilon};
+
+Exi=PtiPtr->\textsubscript{eEx};
+Eyi=PtiPtr->\textsubscript{eEy};
+Exj=PtjPtr->\textsubscript{eEx};
+Eyj=PtjPtr->\textsubscript{eEy};
+
+normx=epsiloni*(Exi*(Exi*KnlPtr->\textsubscript{Wx}+Eyi*KnlPtr->\textsubscript{Wy})-0.5*(Exi*Exi+Eyi*Eyi)*KnlPtr->\textsubscript{Wx})
+  -epsilonj*(Exj*(Exj*KnlPtr->\textsubscript{Wx}+Eyj*KnlPtr->\textsubscript{Wy})-0.5*(Exj*Exj+Eyj*Eyj)*KnlPtr->\textsubscript{Wx});
+normy=epsiloni*(Eyi*(Exi*KnlPtr->\textsubscript{Wx}+Eyi*KnlPtr->\textsubscript{Wy})-0.5*(Exi*Exi+Eyi*Eyi)*KnlPtr->\textsubscript{Wy})
+  -epsilonj*(Eyj*(Exj*KnlPtr->\textsubscript{Wx}+Eyj*KnlPtr->\textsubscript{Wy})-0.5*(Exj*Exj+Eyj*Eyj)*KnlPtr->\textsubscript{Wy});
+
+if(PtiPtr!=PtjPtr)
+  \{
+    bx[IDi-1]+=PtjPtr->\textsubscript{mrho}*normx;
+    by[IDi-1]+=PtjPtr->\textsubscript{mrho}*normy;
+
+          //particle j
+          if(PtjPtr->\textsubscript{Type}==enSPHPt)
+            \{
+              bx[IDj-1]+=PtiPtr->\textsubscript{mrho}*normx;
+              by[IDj-1]+=PtiPtr->\textsubscript{mrho}*normy;
+            \}
+        \}
+    \}
+\}
+
+//calculate CSPM corrected electric force
+for(unsigned int i=0;i!=Region.\textsubscript{CalList.size}();++i)
+  \{
+    BasePtPtr=\&Region.\textsubscript{PtList}[Region.\textsubscript{CalList}[i]];
+    ID2=BasePtPtr->\textsubscript{ID2};
+
+  BasePtPtr->\textsubscript{Fex}=BasePtPtr->\textsubscript{CSPMAxx}*bx[ID2-1]+BasePtPtr->\textsubscript{CSPMAyx}*by[ID2-1];
+  BasePtPtr->\textsubscript{Fey}=BasePtPtr->\textsubscript{CSPMAxy}*bx[ID2-1]+BasePtPtr->\textsubscript{CSPMAyy}*by[ID2-1];
+\}
+
+bx.clear();
+by.clear();
+\emph{/ for(unsigned int i=0;i<Region.\textsubscript{PtPairList.size}();i++)
+/}   \{
+\emph{/     if(Region.\textsubscript{PtPairList}[i].\textsubscript{Type}==enSPHPtPair)
+/}       \{
+\emph{/         PtiPtr=(CSPHPt*)Region.\textsubscript{PtPairList}[i].\textsubscript{PtiPtr};
+/}         PtjPtr=(CSPHPt*)Region.\textsubscript{PtPairList}[i].\textsubscript{PtjPtr};
+//         KnlPtr=\&Region.\textsubscript{KnlList}[i];
+
+\emph{/         epsiloni=PtiPtr->\textsubscript{eEpsilon};
+/}         epsilonj=PtjPtr->\textsubscript{eEpsilon};
+
+\emph{/         Exi=PtiPtr->\textsubscript{eEx};
+/}         Eyi=PtiPtr->\textsubscript{eEy};
+\emph{/         Exj=PtjPtr->\textsubscript{eEx};
+/}         Eyj=PtjPtr->\textsubscript{eEy};
+
+\emph{/         normx=-epsiloni*(Exi*(Exi*KnlPtr->\textsubscript{Wx}+Eyi*KnlPtr->\textsubscript{Wy})-0.5*(Exi*Exi+Eyi*Eyi)*KnlPtr->\textsubscript{Wx})
+/}           +epsilonj*(Exj*(Exj*KnlPtr->\textsubscript{Wx}+Eyj*KnlPtr->\textsubscript{Wy})-0.5*(Exj*Exj+Eyj*Eyj)*KnlPtr->\textsubscript{Wx});
+\emph{/         normy=-epsiloni*(Eyi*(Exi*KnlPtr->\textsubscript{Wx}+Eyi*KnlPtr->\textsubscript{Wy})-0.5*(Exi*Exi+Eyi*Eyi)*KnlPtr->\textsubscript{Wy})
+/}           +epsilonj*(Eyj*(Exj*KnlPtr->\textsubscript{Wx}+Eyj*KnlPtr->\textsubscript{Wy})-0.5*(Exj*Exj+Eyj*Eyj)*KnlPtr->\textsubscript{Wy});
+
+\emph{/         PtiPtr->\textsubscript{Fex}+=PtjPtr->\textsubscript{mrho}*normx;
+/}         PtiPtr->\textsubscript{Fey}+=PtjPtr->\textsubscript{mrho}*normy;
+
+\emph{/         if(PtiPtr!=PtjPtr\&\&PtjPtr->\textsubscript{Type}==enSPHPt)
+/}           \{
+\emph{/             PtjPtr->\textsubscript{Fex}+=PtiPtr->\textsubscript{mrho}*normx;
+/}             PtjPtr->\textsubscript{Fey}+=PtiPtr->\textsubscript{mrho}*normy;
+\emph{/           \}
+/}       \}
+//   \}
+
+
+CKFile kfiletemp;
+  kfiletemp.outTecplotEHDPLANNER(Region,1,"xxehd-case1-4");
+
+  \emph{/ //two list of particles around the seperate line, for pressure jump
+/} \emph{/4 layer each part, the list is corresponding to the particle assemble
+/} unsigned int PtListUpper[6]=\{596,630,664,698,732,766\};
+\emph{/ unsigned int PtListLower[6]=\{392,426,460,494,528,562\};
+/} double plower=0.0;
+\emph{/ double pupper=0.0;
+/} for(unsigned int i=0;i!=6;++i)
+\emph{/   \{
+/}     pupper+=0.5*pow(Region.\textsubscript{PtList}[PtListUpper[i]-1].\textsubscript{eEy,2});
+\emph{/     plower+=0.5*pow(Region.\textsubscript{PtList}[PtListLower[i]-1].\textsubscript{eEy,2});
+/}   \}
+
+  // cout<<"Pressure Jump is :"<<(plower-pupper)/pupper<<endl;
+\}
+
+
+
+
+void CSPHEHD::Solve2(CRegion \& Region)
+\{
+  CSPHPt * PtiPtr,*PtjPtr;
+  CBasePt * BasePtPtr;
+  CKnl * KnlPtr;
+  double eEpsiloni, eEpsilonj;//epsilon of part
+  double eKappai, eKappaj;//kappa of part
+  double norm;
+  double normx,normy;
+  double normx1,normy1;
+  unsigned int IDi,IDj;  
+
+//1.update eepsilon and ekappa
+//Lopez 2011 use an interpolation scheme to calculate transition value between the two fluid with VOF colour
+//here we try an direct interpolation using SPH, just like the interpolation of colour
+for (unsigned int i=0;i<Region.\textsubscript{PtPairList.size}();i++)
+  \{
+    // if(Region.\textsubscript{PtPairList}[i].\textsubscript{Type}!=enSphbndptpair\&\&Region.\textsubscript{PtPairList}[i].\textsubscript{Type}!=enSPHDumPtPair)
+    \{
+      PtiPtr=(CSPHPt*)Region.\textsubscript{PtPairList}[i].\textsubscript{PtiPtr};
+      PtjPtr=(CSPHPt*)Region.\textsubscript{PtPairList}[i].\textsubscript{PtjPtr};
+      KnlPtr=\&Region.\textsubscript{KnlList}[i];
+
+eEpsiloni=Region.\textsubscript{PartList}[PtiPtr->\textsubscript{PID}-1].\textsubscript{eEpsilon};
+eEpsilonj=Region.\textsubscript{PartList}[PtjPtr->\textsubscript{PID}-1].\textsubscript{eEpsilon};
+
+eKappai=Region.\textsubscript{PartList}[PtiPtr->\textsubscript{PID}-1].\textsubscript{eKappa};
+eKappaj=Region.\textsubscript{PartList}[PtjPtr->\textsubscript{PID}-1].\textsubscript{eKappa};
+
+PtiPtr->\textsubscript{eEpsilon}+=PtjPtr->\textsubscript{mrho}*KnlPtr->\textsubscript{W}*eEpsilonj;
+
+PtiPtr->\textsubscript{eKappa}+=PtjPtr->\textsubscript{mrho}*KnlPtr->\textsubscript{W}*eKappaj;
+
+if(PtiPtr!=PtjPtr)
+  \{
+    PtjPtr->\textsubscript{eEpsilon}+=PtiPtr->\textsubscript{mrho}*KnlPtr->\textsubscript{W}*eEpsiloni;
+
+        PtjPtr->\textsubscript{eKappa}+=PtiPtr->\textsubscript{mrho}*KnlPtr->\textsubscript{W}*eKappai;
+      \}
+  \}
+\}
+
+//2.calulate phi n+1, construct A(phi n+1)=b, nabla((K*deltaT+epsilon)*nabla(phi n+1))=-rhoe n
+double DeltaT;
+DeltaT=Region.\textsubscript{ControlSPH}.\textsubscript{DeltaT};
+unsigned int PtNum=Region.\textsubscript{CalList.size}();//the number used to initializae the size of linear equation
+double ** A;
+double * b;
+
+//allocate memory dynamically
+//defaultly, elements in A and b will be initialized as 0
+b=new double[PtNum];
+A = (double**) new double* [PtNum];
+for (unsigned int i = 0; i != PtNum; ++i)
+  \{
+    A[i] = new double[PtNum];
+  \}
+
+for(unsigned int i=0;i!=PtNum;++i)
+  \{
+    b[i]=0.0;
+
+  for(unsigned int j=0;j!=PtNum;++j)
+    \{
+      A[i][j]=0.0;
+    \}
+\}
+
+for (unsigned int i=0;i<Region.\textsubscript{PtPairList.size}();i++)                
+  \{                                                                   
+    if(Region.\textsubscript{PtPairList}[i].\textsubscript{Type}==enSPHPtPair||Region.\textsubscript{PtPairList}[i].\textsubscript{Type}==enSPHDumPtPair)
+      \{
+        PtiPtr=(CSPHPt*)Region.\textsubscript{PtPairList}[i].\textsubscript{PtiPtr};
+        PtjPtr=(CSPHPt*)Region.\textsubscript{PtPairList}[i].\textsubscript{PtjPtr};
+        KnlPtr=\&Region.\textsubscript{KnlList}[i];
+
+if(Region.\textsubscript{ControlSPH}.\textsubscript{RunMod}==1)//Explicit
+  \{
+    IDi=PtiPtr->\textsubscript{ID2};
+    IDj=PtjPtr->\textsubscript{ID2};
+
+//K*deltaT+epsilon
+norm=KnlPtr->\textsubscript{Ww}*(PtiPtr->\textsubscript{eKappa}*DeltaT+PtiPtr->\textsubscript{eEpsilon}+PtjPtr->\textsubscript{eKappa}*DeltaT+PtjPtr->\textsubscript{eEpsilon});    
+
+A[IDi-1][IDi-1]+=PtjPtr->\textsubscript{mrho}*norm;
+
+if(PtjPtr->\textsubscript{Type}==enSPHPt)
+  \{
+    A[IDj-1][IDi-1]=-PtjPtr->\textsubscript{mrho}*norm;
+
+      if(PtiPtr!=PtjPtr)
+        \{
+          A[IDj-1][IDj-1]+=PtiPtr->\textsubscript{mrho}*norm;
+          A[IDi-1][IDj-1] =PtiPtr->\textsubscript{mrho}*norm;
+        \}
+    \}
+  if(PtjPtr->\textsubscript{Type}==enDumPt)
+    \{
+      b[IDi-1]+=PtjPtr->\textsubscript{mrho}*norm*PtjPtr->\textsubscript{ePhi};
+    \}
+\}
+
+
+        else//Implicit
+          \{
+            IDi=PtiPtr->\textsubscript{ID2};
+          \}
+      \}
+  \}
+for(unsigned int i=0;i!=Region.\textsubscript{CalList.size}();++i)
+  \{
+    BasePtPtr=\&Region.\textsubscript{PtList}[Region.\textsubscript{CalList}[i]-1];
+
+  b[BasePtPtr->\textsubscript{ID2}-1]-=BasePtPtr->\textsubscript{eRho};
+\}
+
+int n=PtNum;
+int nrhs=1;//number of rows of b, can more than 1
+int lda=PtNum;//leading dimension of A, lda>=max(1,n)
+int ldb=PtNum;//leading dimension of b, ldb>=max(1,n)
+int *ipiv;//pivot row exchange records, line i is exchanged to line ipiv[i] (not understand yet)
+int info;
+
+ipiv=new int[PtNum];
+
+\emph{/calculate Ax=b using dgesv\_ in LAPACK, after that ,b will be x, electric potential φ
+/} dgesv\textsubscript{(\&n, \&nrhs, \&A[0][0], \&lda, ipiv, \&b[0], \&ldb, \&info)};
+
+if(info!=0)//dgesv\_ failed, actually, a return is needed to stop the whole program
+  cout<<"EHD linear equ Ax=b calculation fialed!"<<endl;
+
+//set φ n+1 of particle from b
+for(unsigned int i=0;i!=Region.\textsubscript{CalList.size}();++i)
+  \{
+    BasePtPtr=\&Region.\textsubscript{PtList}[Region.\textsubscript{CalList}[i]-1];
+
+  BasePtPtr->\textsubscript{ePhi}=b[BasePtPtr->\textsubscript{ID2}-1];
+\}
+
+//
+
+
+//free the memory
+delete[] A;
+delete[] b;
+delete[] ipiv;
+
+//calculate E n+1=grad(phi n+1)
+for (unsigned int i=0;i<Region.\textsubscript{PtPairList.size}();i++)
+  \{
+    if(Region.\textsubscript{PtPairList}[i].\textsubscript{Type}==enSPHPtPair||Region.\textsubscript{PtPairList}[i].\textsubscript{Type}==enSPHDumPtPair)
+     \{
+       PtiPtr=(CSPHPt*)Region.\textsubscript{PtPairList}[i].\textsubscript{PtiPtr};
+       PtjPtr=(CSPHPt*)Region.\textsubscript{PtPairList}[i].\textsubscript{PtjPtr};
+       KnlPtr=\&Region.\textsubscript{KnlList}[i];
+
+PtiPtr->\textsubscript{eEpsilon}+=PtjPtr->\textsubscript{mrho}*KnlPtr->\textsubscript{W}*eEpsilonj;
+
+PtiPtr->\textsubscript{eKappa}+=PtjPtr->\textsubscript{mrho}*KnlPtr->\textsubscript{W}*eKappaj;
+
+if(PtiPtr!=PtjPtr)
+    \{
+      PtjPtr->\textsubscript{eEpsilon}+=PtiPtr->\textsubscript{mrho}*KnlPtr->\textsubscript{W}*eEpsiloni;
+
+           PtjPtr->\textsubscript{eKappa}+=PtiPtr->\textsubscript{mrho}*KnlPtr->\textsubscript{W}*eKappai;
+         \}
+    \}
+\}
+
+\}
+
+
+
+
+void CSPHEHD::output(double ** a, double * b, int n)
+\{
+  ofstream outfile;
+  ostringstream outfilename;
+  outfilename<<"Matrix-ehd"<<".dat";
+  outfile.open(outfilename.str().data(),ios::out);
+
+if (!outfile)
+  \{
+    cerr<<"Out put file could not be open."<<endl<<"tecplot.dat"<<endl;
+    return;
+  \}
+
+for (size\textsubscript{t} i=0;i<n;i++)
+  \{
+    for(size\textsubscript{t} j=0;j!=n;++j)
+      \{
+        outfile
+          <<setiosflags(ios\textsubscript{base}::scientific)
+          <<setprecision(16)
+          <<setw(26)<<a[j][i]<<" ";
+      \}
+
+outfile
+  <<setiosflags(ios\textsubscript{base}::scientific)
+  <<setprecision(16)
+  <<setw(26)<<b[i]<<" "
+  <<endl;
+
+\}
+
+
+cout<<"Output file has been written."<<endl;
+
+  outfile.close();
+\}
+
+
+void CSPHEHD::output2(QMatrix \& a, Vector \& x, Vector \& b ,string outputname)
+\{
+
+ofstream outfile;
+ostringstream outfilename;
+outfilename<<outputname<<".dat";
+outfile.open(outfilename.str().data(),ios::out);
+
+if (!outfile)
+  \{
+    cerr<<"Out put file could not be open."<<endl<<"tecplot.dat"<<endl;
+    return;
+  \}
+
+size\textsubscript{t} n=Q\textsubscript{GetDim}(\&a);
+for (size\textsubscript{t} i=0;i<n;i++)
+  \{
+    for(size\textsubscript{t} j=0;j!=n;++j)
+      \{
+        outfile
+          <<setiosflags(ios\textsubscript{base}::scientific)
+          <<setprecision(16)
+          <<setw(26)<<Q\textsubscript{GetEl}(\&a, i+1, j+1)<<" ";
+      \}
+
+outfile
+  <<setiosflags(ios\textsubscript{base}::scientific)
+  <<setprecision(16)
+  <<setw(26)<<V\textsubscript{GetCmp}(\&x, i+1)<<" "
+  <<setw(26)<<V\textsubscript{GetCmp}(\&b, i+1)<<" "
+  <<endl;
+
+\}
+
+
+cout<<"Output2 file has been written."<<endl;
+
+   outfile.close();
+\}
+
+
+void CSPHEHD::outputV(Vector \& x ,string outputname)
+\{
+
+ofstream outfile;
+ostringstream outfilename;
+outfilename<<outputname<<".dat";
+outfile.open(outfilename.str().data(),ios::out);
+
+if (!outfile)
+  \{
+    cerr<<"Out put file could not be open."<<endl<<"tecplot.dat"<<endl;
+    return;
+  \}
+
+size\textsubscript{t} n=V\textsubscript{GetDim}(\&x);
+for (size\textsubscript{t} i=0;i<n;i++)
+  \{
+    outfile
+      <<setiosflags(ios\textsubscript{base}::scientific)
+      <<setprecision(16)
+      <<setw(26)<<V\textsubscript{GetCmp}(\&x, i+1)<<" "
+      <<endl;
+  \}
+
+
+cout<<outputname<<" file has been written."<<endl;
+
+  outfile.close();
+\}
+\end{document}

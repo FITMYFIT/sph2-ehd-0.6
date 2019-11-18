@@ -1,0 +1,6 @@
+set terminal 'wxt'
+set title 'EHD Planer test, phi'
+set xrange [-0.5:0.5]
+set xlabel 'y'
+set ylabel "Phi"
+plot (-2*x+3)/4 lc 2,3*(-2*x+1)/4 lc 1

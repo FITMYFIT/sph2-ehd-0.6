@@ -1,0 +1,55 @@
+% Created 2019-11-13 Wed 20:34
+% Intended LaTeX compiler: pdflatex
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{grffile}
+\usepackage{longtable}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{textcomp}
+\usepackage{amssymb}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\author{stardiviner}
+\date{\today}
+\title{}
+\hypersetup{
+ pdfauthor={stardiviner},
+ pdftitle={},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 26.3 (Org mode 9.2.6)}, 
+ pdflang={English}}
+\begin{document}
+
+\tableofcontents
+
+*DETAILS OF THE PROJECT
+\begin{center}
+\begin{tabular}{rlll}
+date & name & discription & \\
+\hline
+\hline
+2019.11.05 & sph2-ehd-0.4 & for ehd model in sph, 2D & \\
+ &  & 1. when use dummy particles with const phi as boundary, planer layer tests show that the & \\
+ &  & results of phi near boundary is not very accurate, for the gradient of phi near the boundary & \\
+ &  & is not correctly reflected (relative error:12\%). in order to correct this drawback, I define & \\
+ &  & two new part types: enEHDDum \& enEHDBnd, displacement: fluid-ehdbnd-ehddum, phi of ehdbnd is & \\
+ &  & set const, and phi of ehddum is interpolated from ehdbnd and fluid particles & \\
+ &  & 2. use Stranex's correct scheme to interpolate the phi of ehd dummy particle, for CSPM has & \\
+ &  & no information of gradient, test show that: & \\
+ &  & (1)for the outer layer of ehddummy particle, the interpolation is not very stable, crashes & \\
+ &  & in the 3rd timestep, reason: interpolation for case: ehddumm-null-ehdbnd-fluid, is unstable & \\
+ &  & (2)correct:use one layer of ehdbnd particles and one layer of ehddum particles, not perfect & \\
+ &  & but works, reletive error of phi: 2\% & \\
+\hline
+2019.11.12 & sph2-ehd-0.5 & sph2-ehd-0.4 can not produce satisfied results of rhoe, so here I use the scheme of Basilisk, the former scheme also carried. & \\
+ &  & Basilisk's scheme works, produces good results of rhoe, but it seems that the accelerate is as poor as before. Here is my explanation: rhoe=divergence(E),E=-grad(phi), so the rhoe is the 2nd derivative of phi, which is seemed to be a main drawback of SPH, the former scheme in Gerris (sph2-ehd-0.4 used) is a embeded method, which is proved before to be not very accurate, here the scheme in Basilisk, I use a finite difference and SPH coupled method, similar to the calculation of viscosity, and this scheme produces satisfied results & \\
+ &  & Results are good. & \\
+\end{tabular}
+\end{center}
+\end{document}
