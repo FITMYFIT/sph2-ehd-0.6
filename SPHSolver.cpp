@@ -17,7 +17,8 @@ void CSPHSolver::Input()
 		// "Lid_driven";
     // "ehdplanercase2";
     // "EHDBulkRelax";
-   "EHDIsoCondCylinder";
+    //  "EHDIsoCondCylinder";
+    "ehddrop";
   //"dambreak-ETSIN-3";
   //"dambreak-han";
   /*"shelldrop"*/
@@ -31,9 +32,10 @@ void CSPHSolver::Input()
 
   //_Model.EHDPlannar(_Region);//model of ehd plannar, lopez 2011 4.1
   // _Model.EHDBulkRelax(_Region);//model of ehd bulk relaxation, lopez 2011 4.2.1
-  _Model.EHDIsoCondCylinder(_Region);//model of ehd isolated conduction cylinder
+  //_Model.EHDIsoCondCylinder(_Region);//model of ehd isolated conduction cylinder
+   _Model.EHDDrop(_Region);//model of ehd droplet, lopezf 2011 4.3
 
-  // _CalBndNorm.Solve(_Region);//用类似CSF模型的方法计算边界粒子的法向
+   // _CalBndNorm.Solve(_Region);//用类似CSF模型的方法计算边界粒子的法向
 
 	//_KFile.InputMesh(_Region);
 
@@ -64,77 +66,81 @@ void CSPHSolver::Run()
 
   for(;_Ttime<_Region._ControlSPH._FinalTime;)
 	{
-      cout<<"the time steps is"<<_TimeSteps<<endl;
-
-      cout<<"the total time is"<<_Ttime<<endl;
-
-      ////将粒子插值到网格上，先只插值一步看看计算效果
-      //if (_TimeSteps==0)
-      //{
-      //	_Region._ControlSPH._IFlagRemesh=0;
-      //	_CalculateRange._UpdateRange(_Region,_TimeSteps);
-      //	_Remesh.Solve(_Region);
-      //	_Region._ControlSPH._IFlagRemesh=1;
-      //}
-
-      cout<<"0.Preparation: Update Calculation Range & Initialization."<<endl;
-
-      _CalculateRange._UpdateRange(_Region,_TimeSteps);
-
-      _SPHInit.Solve(_Region,_TimeSteps);//初始化
+    _StartT=clock();
     
-      cout<<"0.Preparation has been done."<<endl;
+    cout<<"the time steps is"<<_TimeSteps<<endl;
 
-      cout<<"the number of particles involved in calculation is"<<_Region._CalList.size()<<endl;
+    cout<<"the total time is"<<_Ttime<<endl;
 
-      cout<<"1.start neighbor particles searching."<<endl;
+    ////将粒子插值到网格上，先只插值一步看看计算效果
+    //if (_TimeSteps==0)
+    //{
+    //	_Region._ControlSPH._IFlagRemesh=0;
+    //	_CalculateRange._UpdateRange(_Region,_TimeSteps);
+    //	_Remesh.Solve(_Region);
+    //	_Region._ControlSPH._IFlagRemesh=1;
+    //}
 
-      _NblSch.GetNbl(_Region);
+    cout<<"0.Preparation: Update Calculation Range & Initialization."<<endl;
 
-      cout<<"1.neighbor searching has been done (total neighbor pairs:"<<_Region._PtPairList.size()<<")"<<endl;
+    _CalculateRange._UpdateRange(_Region,_TimeSteps);
 
-      cout<<"2.start getting knllist."<<endl;
+    _SPHInit.Solve(_Region,_TimeSteps);//初始化
+    
+    cout<<"0.Preparation has been done."<<endl;
 
-      _GetKnlList.GetKnlList(_Region);
+    cout<<"the number of particles involved in calculation is"<<_Region._CalList.size()<<endl;
 
-      cout<<"2.knllist has been got."<<endl;
+    cout<<"1.start neighbor particles searching."<<endl;
 
-      //临时的
-      //---------------------------------
-      //_IdentPtLocal.IdentPtLocal(_Region);//临时的，看一下算最小特征向量的结果
+    if(  _TimeSteps==_Region._ControlSPH._StartStep)//only for cases particle not move, particle pairs donot vary
+      {
 
-      //-----------------------
+        _NblSch.GetNbl(_Region);     
 
-      _DeltaT.GetDeltaT(_Region);
+        cout<<"2.start getting knllist."<<endl;
 
-      cout<<"DeltaT:"<<_DeltaT._DeltaT1<<endl;
+        _GetKnlList.GetKnlList(_Region);
 
-      cout<<"3.start calculating continuity equation."<<endl;
+        cout<<"2.knllist has been got."<<endl;
+      }
+    cout<<"1.neighbor searching has been done (total neighbor pairs:"<<_Region._PtPairList.size()<<")"<<endl;
+    //临时的
+    //---------------------------------
+    //_IdentPtLocal.IdentPtLocal(_Region);//临时的，看一下算最小特征向量的结果
 
-      //_ContinuityEqu.Solve(_Region,_TimeSteps);//如果需要，需再添加人工耗散等部分
+    //-----------------------
 
-      cout<<"3.continuity equation has been solved."<<endl;
+    _DeltaT.GetDeltaT(_Region);
 
-      cout<<"4.start solving equation of station"<<endl;
+    cout<<"DeltaT:"<<_DeltaT._DeltaT1<<endl;
 
-      //_SPHEOS.Solve(_Region);
+    cout<<"3.start calculating continuity equation."<<endl;
 
-      cout<<"4.equation of station has been solved."<<endl;
+    //_ContinuityEqu.Solve(_Region,_TimeSteps);//如果需要，需再添加人工耗散等部分
 
-      //插值得到Dummy粒子的压力并计算出其密度
-      //  _GetDumProperty.Solve(_Region);
+    cout<<"3.continuity equation has been solved."<<endl;
 
-      cout<<"5.start solving momentum equation."<<endl;
+    cout<<"4.start solving equation of station"<<endl;
 
-      _SPHEqu.Accelerate(_Region,_DeltaT._DeltaT1,_TimeSteps);
+    //_SPHEOS.Solve(_Region);
 
-      cout<<"5.momentum equation has been solved."<<endl;
+    cout<<"4.equation of station has been solved."<<endl;
 
-      cout<<"6.start update the particle position."<<endl;
+    //插值得到Dummy粒子的压力并计算出其密度
+    //  _GetDumProperty.Solve(_Region);
 
-      if(_Region._ControlSPH._RunMod==1)//显式计算时需要LeapFrog
-        {
-          _UpdatePosition.LeapFrogUpdate(_Region,_DeltaT._DeltaT,_DeltaT._DeltaT1,_TimeSteps);
+    cout<<"5.start solving momentum equation."<<endl;
+
+    _SPHEqu.Accelerate(_Region,_DeltaT._DeltaT1,_TimeSteps);
+
+    cout<<"5.momentum equation has been solved."<<endl;
+
+    cout<<"6.start update the particle position."<<endl;
+
+    if(_Region._ControlSPH._RunMod==1)//显式计算时需要LeapFrog
+      {
+        _UpdatePosition.LeapFrogUpdate(_Region,_DeltaT._DeltaT,_DeltaT._DeltaT1,_TimeSteps);
         }
       else//隐式推进粒子坐标
         {
@@ -148,6 +154,10 @@ void CSPHSolver::Run()
 
       cout<<_TimeSteps<<" time steps' calculation has been done"<<endl;
 
+      _EndT=clock();
+
+      cout<<"Run time is :"<<(double)(_EndT-_StartT)/CLOCKS_PER_SEC<<"s"<<endl;
+
       cout<<"----------------------------------------------------------"<<endl;
 
       if(_TimeSteps%(_Region._ControlSPH._OutputSteps)==0)
@@ -155,9 +165,10 @@ void CSPHSolver::Run()
           // Output();
         }
 
-      _NblSch.Clear(_Region);
+      //if particles not move, no need to clear particle pair list
+      // _NblSch.Clear(_Region);
 
-      _GetKnlList.ClearKnlList(_Region);
+      //_GetKnlList.ClearKnlList(_Region);
 
       _CalculateRange._Clear(_Region);
 	}

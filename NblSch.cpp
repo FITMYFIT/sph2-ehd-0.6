@@ -34,9 +34,14 @@ void CNblSch::ResizeBox(size_t CellNumx,size_t CellNumy/*,size_t CellNumz*/)
 		_Box.UpdateBox(Region);//update the Box
 	}
 
-	//周期性边界，目前只能用于X方向的周期性边界
-	//周期性边界1.找出每一行的粒子坐标最大值和最小值
-	if(Region._ControlSPH._PerdBnd==1)
+  for(unsigned int i=0;i!=Region._PtList.size();++i)
+    {
+      Region._PtList[i]._NumNegbor=0;
+    }
+
+  //周期性边界，目前只能用于X方向的周期性边界
+  //周期性边界1.找出每一行的粒子坐标最大值和最小值
+  if(Region._ControlSPH._PerdBnd==1)
     {
       MAXX=Region._ControlSPH._PerdBndMaxX;
       MINX=Region._ControlSPH._PerdBndMinX;
@@ -127,62 +132,63 @@ void CNblSch::ResizeBox(size_t CellNumx,size_t CellNumy/*,size_t CellNumz*/)
       
       if(PtPtr->_Type==enSPHPt)
         {
-          _Box.GetNbl(PtPtr->_x,PtPtr->_y,PtPtr->_r,_PtNbList);
+          vector<CBasePt *> PtNbList;
+          _Box.GetNbl(PtPtr->_x,PtPtr->_y,PtPtr->_r, PtNbList);
 
-          for(size_t i=0;i<_PtNbList.size();i++)//for all the number of the _PtNbList
+          for(size_t i=0;i<PtNbList.size();i++)//for all the number of the PtNbList
             {
-              dxiac=PtPtr->_x-_PtNbList[i]->_x;
-              dyiac=PtPtr->_y-_PtNbList[i]->_y;
+              dxiac=PtPtr->_x-PtNbList[i]->_x;
+              dyiac=PtPtr->_y-PtNbList[i]->_y;
 
               dxiac2=dxiac*dxiac;
               dyiac2=dyiac*dyiac;
 
               driac2=dxiac2+dyiac2;
-              r=_PtNbList[i]->_r+PtPtr->_r;
+              r=PtNbList[i]->_r+PtPtr->_r;
               r2=r*r;
 
               //the second searching
               if(4*driac2<=r2)
                 {						
-                  switch (_PtNbList[i]->_Type)
+                  switch (PtNbList[i]->_Type)
                     {
                     case enSPHPt: 
                       {	
-                        if((ID+1)<=_PtNbList[i]->_ID)
+                        if((ID+1)<=PtNbList[i]->_ID)
                           {
-                            PushPtPair(Region._PtPairList, PtPtr, _PtNbList[i], enSPHPtPair, dxiac, dyiac, driac2);   
+                            PushPtPair(Region._PtPairList, PtPtr, PtNbList[i], enSPHPtPair, dxiac, dyiac, driac2);   
                           }
 
                         else
                           {
                             double PtNbr;
-                            PtNbr=_PtNbList[i]->_r*_PtNbList[i]->_r;
+                            PtNbr=PtNbList[i]->_r*PtNbList[i]->_r;
                             if(driac2>PtNbr)
                               {
-                                PushPtPair(Region._PtPairList, _PtNbList[i], PtPtr, enSPHPtPair, -dxiac, -dyiac, driac2);
+                                PushPtPair(Region._PtPairList, PtNbList[i], PtPtr, enSPHPtPair, -dxiac, -dyiac, driac2);
                               }
                           }
                         break;
                       }
 						
                     case enNULLPt:
-                      PushPtPair(Region._PtPairList, PtPtr, _PtNbList[i], enSPHNULLPtPair, dxiac, dyiac, driac2);   
+                      PushPtPair(Region._PtPairList, PtPtr, PtNbList[i], enSPHNULLPtPair, dxiac, dyiac, driac2);   
                       break;
                                                                                
                     case enDumPt://2014.09.07
-                      PushPtPair(Region._PtPairList, PtPtr, _PtNbList[i], enSPHDumPtPair, dxiac, dyiac, driac2);   
+                      PushPtPair(Region._PtPairList, PtPtr, PtNbList[i], enSPHDumPtPair, dxiac, dyiac, driac2);   
                       break;
 
                     case enBndPt:
-                      PushPtPair(Region._PtPairList, PtPtr, _PtNbList[i], enSPHBndPtPair, dxiac, dyiac, driac2);   
+                      PushPtPair(Region._PtPairList, PtPtr, PtNbList[i], enSPHBndPtPair, dxiac, dyiac, driac2);   
                       break;
 
                     case enEHDBndPt://2019.10.26
-                      PushPtPair(Region._PtPairList, PtPtr, _PtNbList[i], enSPHEHDBndPtPair, dxiac, dyiac, driac2);   
+                      PushPtPair(Region._PtPairList, PtPtr, PtNbList[i], enSPHEHDBndPtPair, dxiac, dyiac, driac2);   
                       break;
 
                     case enEHDDumPt://2019.10.26
-                      PushPtPair(Region._PtPairList, PtPtr, _PtNbList[i], enSPHEHDDumPtPair, dxiac, dyiac, driac2);   
+                      PushPtPair(Region._PtPairList, PtPtr, PtNbList[i], enSPHEHDDumPtPair, dxiac, dyiac, driac2);   
                       break;
 
                     default:
@@ -191,6 +197,8 @@ void CNblSch::ResizeBox(size_t CellNumx,size_t CellNumy/*,size_t CellNumz*/)
 
                 }
             }
+
+          PtNbList.clear();
         }
     }
 

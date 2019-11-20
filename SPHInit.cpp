@@ -59,7 +59,7 @@ void CSPHInit::Solve(CRegion &Region,unsigned int TimeSteps)
           BasePtPtr->_AccBndx=0.0;//边界粒子对流体粒子产生的加速度
           BasePtPtr->_AccBndy=0.0;//边界粒子对流体粒子产生的加速度
 
-          BasePtPtr->_NumNegbor=0;//每个粒子支持域内的粒子数置0
+          //BasePtPtr->_NumNegbor=0;//每个粒子支持域内的粒子数置0
           BasePtPtr->_r0=0.0;//截止距离，用于particle shift
           BasePtPtr->_PtShftCoefu=0.0;
           BasePtPtr->_PtShftCoefv=0.0;
@@ -131,7 +131,7 @@ void CSPHInit::Solve(CRegion &Region,unsigned int TimeSteps)
           BasePtPtr->_AccBndx=0.0;//边界粒子对流体粒子产生的加速度
           BasePtPtr->_AccBndy=0.0;//边界粒子对流体粒子产生的加速度
 
-          BasePtPtr->_NumNegbor=0;//每个粒子支持域内的粒子数置0
+          // BasePtPtr->_NumNegbor=0;//每个粒子支持域内的粒子数置0
           BasePtPtr->_r0=0.0;//截止距离，用于particle shift
           BasePtPtr->_PtShftCoefu=0.0;
           BasePtPtr->_PtShftCoefv=0.0;

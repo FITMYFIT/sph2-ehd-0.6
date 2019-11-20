@@ -38,6 +38,7 @@
 
 #include <iostream>
 #include <vector>
+#include <ctime>
 using namespace std;
 
 
@@ -97,6 +98,8 @@ private:
   CCalBndNorm _CalBndNorm;
 
   CModel _Model;//directly modelling in the program
+
+  clock_t _StartT,_EndT;
 
 };
 

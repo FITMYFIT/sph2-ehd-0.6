@@ -342,3 +342,98 @@ void CModel::EHDIsoCondCylinder (CRegion & Region)
     }
 
 }
+
+
+void CModel::EHDDrop (CRegion & Region)
+{
+  unsigned int N=64;//the particle number in x and y directions
+  N=512;
+  Region._ControlSPH._CellNumx=Region._ControlSPH._CellNumy=N;//the box number, specified here, the value in .k file will not be used
+
+  double xlb=-2;//left bottom corner
+  double ylb=-2;
+  double xru=2;//right upper corner
+  double yru=2;
+
+  double psize=(xru-xlb)/(N);// particle size
+
+  double xmin=xlb-psize;
+  double ymin=ylb-psize;
+
+  // Region._PtList.clear();
+  Region._PtList.resize((N+3)*(N+3));
+
+  double r2;
+  double R0=0.1;
+  CBasePt * BasePtPtr;
+  
+  for(unsigned int i=0;i!=N+3;++i)
+    {
+      for(unsigned int j=0;j!=N+3;++j)
+        {
+          BasePtPtr=&Region._PtList[i*(N+3)+j];
+          BasePtPtr->_ID=i*(N+3)+j+1;
+
+          BasePtPtr->_x=xmin+j*psize;
+          BasePtPtr->_y=ymin+i*psize;
+
+          if(i==0||i==N+2||j==0||j==N+2)//the outer layer, end dummy pt
+            {
+              BasePtPtr->_PID=4;
+              BasePtPtr->_Type=enEHDDumPt;
+              BasePtPtr->_eRho=0.0;
+            }
+
+          else if(i==1||i==N+1||j==1||j==N+1)
+            {
+              BasePtPtr->_PID=3;
+              BasePtPtr->_Type=enEHDBndPt;
+              BasePtPtr->_eRho=0.0;
+            }
+          else
+            {
+              BasePtPtr->_Type=enSPHPt;
+              if(pow(BasePtPtr->_x,2)+pow(BasePtPtr->_y,2)<=R0*R0)
+                {
+                  BasePtPtr->_PID=1;
+                  BasePtPtr->_eRho=0.0;
+                }
+              else
+                {
+                  BasePtPtr->_PID=2;
+                  BasePtPtr->_eRho=0;
+                }            
+            }
+       
+          BasePtPtr->_Volume=psize*psize;
+
+          BasePtPtr->_u=0.0;
+          BasePtPtr->_v=0.0;
+
+          BasePtPtr->_rho=1.0;
+          BasePtPtr->_rho0=1.0;
+          BasePtPtr->_m=BasePtPtr->_rho0*BasePtPtr->_Volume;
+          BasePtPtr->_h=Region._PartList[BasePtPtr->_PID-1]._HdivDp*psize;
+          BasePtPtr->_r=2.0*BasePtPtr->_h;
+
+          BasePtPtr->_C0=Region._PartList[BasePtPtr->_PID-1]._C0;
+
+          BasePtPtr->_Cs=Region._ControlSPH._Cs;
+
+          BasePtPtr->_p=0.0;
+          BasePtPtr->_Iflag=0;
+
+          //ehd concerned variables
+          BasePtPtr->_eEpsilon=0.0;
+          BasePtPtr->_eEx=0.0;
+          BasePtPtr->_eEy=0.0;
+          //BasePtPtr->_eRho=0.0;
+
+          double Einf=1.0;//4.3 step 1 ,test for static case
+          if(BasePtPtr->_PID!=1)
+            BasePtPtr->_ePhi=Einf*BasePtPtr->_x;
+
+        }
+    }
+
+}

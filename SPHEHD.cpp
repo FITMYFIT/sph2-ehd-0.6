@@ -759,9 +759,11 @@ void CSPHEHD::Solve3(CRegion & Region, unsigned int Timesteps)
   double Exi,Exj,Eyi,Eyj;
   unsigned int IDi,IDj;  
   unsigned int ID,ID2;
+
   //1.update eepsilon and ekappa
   //Lopez 2011 use an interpolation scheme to calculate transition value between the two fluid with VOF colour
   //here we try an direct interpolation using SPH, just like the interpolation of colour
+ 
   for (unsigned int i=0;i!=Region._PtPairList.size();i++)
     {
       // if(Region._PtPairList[i]._Type!=enSphbndptpair&&Region._PtPairList[i]._Type!=enSPHDumPtPair)
@@ -801,6 +803,7 @@ void CSPHEHD::Solve3(CRegion & Region, unsigned int Timesteps)
           }
       }
     }
+
 
   //temp, for test, do not interpolate kappa and epsilon
   //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -862,6 +865,7 @@ void CSPHEHD::Solve3(CRegion & Region, unsigned int Timesteps)
   icount.resize(PtNum,1);//there is one element now, i-i, the first one of each row
   double DeltaT;
   DeltaT=Region._ControlSPH._DeltaT;
+
   for(unsigned int i=0;i<Region._PtPairList.size();i++)
     {
       if(Region._PtPairList[i]._Type==enSPHPtPair
@@ -953,6 +957,7 @@ void CSPHEHD::Solve3(CRegion & Region, unsigned int Timesteps)
       Region._PtList[i]._deRho=0.0;
     }
   DeltaT=Region._ControlSPH._DeltaT;
+  //#pragma omp parallel for
   for(unsigned int i=0;i<Region._PtPairList.size();i++)
     {
       if(Region._PtPairList[i]._Type==enSPHPtPair
@@ -1121,7 +1126,8 @@ void CSPHEHD::Solve3(CRegion & Region, unsigned int Timesteps)
   // kfiletemp.outTecplotEHDPLANNER(Region,Timesteps,"xxehd-case3");
   if(Timesteps==0||((Timesteps+1)%Region._ControlSPH._OutputSteps)==0)
     {
-      kfiletemp.outTecplotIsoCondCylinder(Region, Timesteps+1,"xx"+Region._ControlSPH._InfileName);
+       kfiletemp.outTecplotEHDDrop(Region, Timesteps+1,"xx"+Region._ControlSPH._InfileName);
+       // kfiletemp.outTecplotIsoCondCylinder(Region, Timesteps+1,"xx"+Region._ControlSPH._InfileName);
       // kfiletemp.outTecplotEHDBulkRelax(Region, Timesteps+1,"xx"+Region._ControlSPH._InfileName);
     }
 

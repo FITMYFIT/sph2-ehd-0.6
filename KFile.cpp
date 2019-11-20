@@ -1167,6 +1167,154 @@ void CKFile::outTecplotIsoCondCylinder(CRegion & Region,unsigned int TimeSteps, 
 
   outfile.close();
 }
+void CKFile::outTecplotEHDDrop (CRegion & Region,unsigned int TimeSteps, string outputname)
+{
+  ofstream outfile;
+  ostringstream outfilename;
+  outfilename<<outputname<<setw(8)<<setfill('0')<<TimeSteps<<setw(4)<<".dat";
+  outfile.open(outfilename.str().data(),ios::out);
+
+  if (!outfile)
+    {
+      cerr<<"Out put file could not be open."<<endl<<"tecplot.dat"<<endl;
+      return;
+    }
+
+
+  outfile
+    <<"VARIABLES= "
+    <<"\"AXISX\" "
+    <<"\"AXISY\" "
+    //<<"\"AXISZ\" "
+    <<"\"PID\" "
+    <<"\"ID\" "
+    <<"\"ID2\" "
+    <<"\"DENSITY\" "
+    //<<"\"DENSITY0\" "
+    <<"\"VELOCITYX\" "
+    <<"\"VELOCITYY\" "
+    //<<"\"VELOCITYZ\" "
+    <<"\"PRESSURE\" "
+    <<"\"SMOOTHLENGTH\" "
+    <<"\"PTSIZE\" "//particle size, for visualization simpilicity in tecplot
+    <<"\"IFLAG\" "
+    <<"\"DRHOE\" "
+    <<"\"Fex\" "
+    <<"\"Fey\" "
+    <<"\"EPSILON\" "
+    <<"\"KAPPA\" "
+    <<"\"RHOE\" "
+    //  <<"\"RHOEExt\" "
+    <<"\"PHI\" "
+    <<"\"EX\" "
+    <<"\"EY\" "
+    // <<"\"PHIext\" "
+    // <<"\"Eext\" "
+    // <<"\"ErrorPHI\" "
+    // <<"\"ErrorE\" "
+    <<"\"NUMNEIGHBOR\" "
+      
+    <<endl;
+  outfile<<"ZONE T="<<"\""<<Region._ControlSPH._InfileName<<" step "<<TimeSteps<<"\" I= "<<Region._PtList.size()<<", F=POINT"<<endl;//I= 后面必须有个空格，否则重启读数不行
+  CSPHPt *SPHPtPtr;
+
+  //calculate the exact values of electric field and electric potential, and the errors between simulation and exact
+  double beta,eta;//
+
+  vector <double> RhoeExt;
+  vector<double> ErrorRhoe;
+  RhoeExt.resize(Region._PtList.size(),0.0);
+  ErrorRhoe.resize(Region._PtList.size(),0.0);
+ 
+  double t=(TimeSteps)*Region._ControlSPH._DeltaT;
+  for (size_t iii=0;iii<Region._PtList.size();iii++)
+    {
+      SPHPtPtr=(CSPHPt *)(&Region._PtList[iii]);
+      {
+        outfile
+          <<setiosflags(ios_base::scientific)
+          <<setprecision(16)
+          <<setw(26)<<SPHPtPtr->_x<<" "
+          <<setw(26)<<SPHPtPtr->_y<<" "
+          //<<setw(26)<<SPHPtPtr->_z<<" "
+          <<setw(26)<<SPHPtPtr->_PID<<" "
+          <<setw(26)<<SPHPtPtr->_ID<<" "
+          <<setw(26)<<SPHPtPtr->_ID2<<" "
+          <<setw(26)<<SPHPtPtr->_rho<<" "
+          //<<setw(26)<<SPHPtPtr->_rho0<<" "
+          <<setw(26)<<SPHPtPtr->_u<<" "
+          <<setw(26)<<SPHPtPtr->_v<<" "
+          //<<setw(26)<<SPHPtPtr->_w<<" "
+          <<setw(26)<<SPHPtPtr->_p<<" "
+          <<setw(26)<<SPHPtPtr->_h<<" "
+          <<setw(26)<<SPHPtPtr->_h/(Region._PartList[SPHPtPtr->_PID-1]._HdivDp)<<" "
+          <<setw(26)<<SPHPtPtr->_Iflag<<" "
+          <<setw(26)<<SPHPtPtr->_deRho<<" "
+          <<setw(26)<<SPHPtPtr->_Fex<<" "
+          <<setw(26)<<SPHPtPtr->_Fey<<" "
+          <<setw(26)<<SPHPtPtr->_eEpsilon<<" "
+          <<setw(26)<<SPHPtPtr->_eKappa<<" "
+          <<setw(26)<<SPHPtPtr->_eRho<<" "
+          //  <<setw(26)<<RhoeExt[iii]<<" "//exact phi, used for ehdplanner test, Lopez 2011 Table1
+          <<setw(26)<<SPHPtPtr->_ePhi<<" "
+          <<setw(26)<<SPHPtPtr->_eEx<<" "
+          <<setw(26)<<SPHPtPtr->_eEy<<" "
+          <<setw(26)<<SPHPtPtr->_NumNegbor<<" "//error e, used for ehdplanner test
+          <<endl;
+      }
+    }
+
+  
+  t=TimeSteps*Region._ControlSPH._DeltaT;  
+  //output Er, from center to out
+  outfile.close();
+  double ErExact;
+  outfilename.str("");
+  outfilename<<"Er-"<<outputname<<TimeSteps<<".dat";
+  outfile.open(outfilename.str().data(),ios::out);
+  if (!outfile)
+    {
+      cerr<<"Out put file y=0 line could not be open."<<endl;
+      return;
+    }
+
+  
+  outfile
+    <<"VARIABLES= "
+    <<"\"AXISX\" "
+    <<"\"Er\" "
+    // <<"\"ErExt\" "
+    <<endl;
+  outfile<<"ZONE T="<<"\""<<Region._ControlSPH._InfileName<<" t= "<<t<<"\" I= "<<34<<", F=POINT"<<endl;
+
+  double R=2.5; //kappa1/kappa2
+  // for(unsigned int i=2244;i!=2278;++i) //N=64
+  // for(unsigned int i=33540;i!=33668;++i) //N=256,2^8
+  //for(unsigned int i=8580;i!=8644;++i) //N=128,2^7
+  for(unsigned int i=132612;i!=132868;++i) //N=256,2^9
+    //for(unsigned int i=74884;i!=75076;++i) //N=256+128, L=3
+    {
+      //  ErExact=(Region._PtList[i]._x<R?0:Q0/(2*PI*2*Region._PtList[i]._x));
+      //if(ISZERO(Region._PtList[i]._y))
+      {
+        outfile
+          <<setiosflags(ios_base::scientific)
+          <<setprecision(16)
+          <<setw(26)<<Region._PtList[i]._x<<" "
+          <<setw(26)<<-Region._PtList[i]._eEx<<" "
+          //  <<setw(26)<<ErExact<<" "
+          <<endl;
+      }
+    }
+
+  
+
+  RhoeExt.clear();
+
+  cout<<"Output file "<<"\"" <<outfilename.str() <<"\""<<" has been written."<<endl;
+
+  outfile.close();
+}
 
 void CKFile::outTecplotEHDPLANNER(CRegion & Region,unsigned int TimeSteps, string outputname)
 {

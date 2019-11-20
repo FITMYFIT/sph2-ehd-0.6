@@ -37,7 +37,9 @@ public:
 
   void EHDIsoCondCylinder(CRegion & Region);//Lopez 2011 4.2.2 problem
 
-private:
+  void EHDDrop(CRegion & Region);//lopez 2011 4.3 drop 
+
+  private:
 
 };
 

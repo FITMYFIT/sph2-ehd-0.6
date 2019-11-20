@@ -18,7 +18,7 @@ $
 0,0,2,0,0,0.0,0,0,0
 $
 *CONTROL_SPH2 1Sound-Speed 2DeltaT 3FinalTime 4OutputSteps 
-1.0,0.025,20,4
+1.0,0.0125,20,80
 $
 *CELL_NUM 1CELLNUMX,2CELLNUMY
 50,50

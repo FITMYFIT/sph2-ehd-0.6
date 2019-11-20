@@ -12,6 +12,7 @@ int main()
   cout<<"*****************************************"<<endl;
   cout<<endl;
 
+
   CSPHSolver sphsolver;
   sphsolver.Input();
   sphsolver.Run();

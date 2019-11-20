@@ -1,7 +1,7 @@
 # -*-Makefile-*-
 CC=g++
-# CXXFLAGS+=-Wall -O2
-CXXFLAGS+=-g
+CXXFLAGS+=-Wall -O2
+#CXXFLAGS+=-g
 
 #CXXLAPACKFLAGS is used to link lapack library, if lapack not used ,this can be ommited
 CXXLAPACKFLAGS=-L${LAPACKROOT} -llapack -lrefblas -lgfortran -lm
@@ -11,7 +11,7 @@ CXXLAPACKFLAGS=-L${LAPACKROOT} -llapack -lrefblas -lgfortran -lm
 sphxx=sphxx
 
 $(sphxx):main.o
-	$(CC) $(CXXFLAGS) *.o -o $(sphxx) -llaspack -lm 
+	$(CC) $(CXXFLAGS)  *.o -o $(sphxx) -llaspack -lm 
 
 main.o:main.cpp SPHSolver.o
 	$(CC) $(CXXFLAGS) -c main.cpp

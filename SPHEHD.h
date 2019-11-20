@@ -30,6 +30,8 @@
 #include <iomanip>
 #include <cmath>
 
+//#include <omp.h>
+
 //using LASpack to calculate linear equation ,BICG or other
 extern "C" {
 #include <laspack/itersolv.h>

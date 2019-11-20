@@ -50,6 +50,8 @@ public:
   void outTecplotEHDPLANNER(CRegion & Region, unsigned int TimeSteps, string outputname);//output for ehd planner test, Lopez 2011
   void outTecplotEHDBulkRelax(CRegion & Region, unsigned int TimeSteps, string outputname);//output for ehd bulk relaxation test, Lopez 2011
   void outTecplotIsoCondCylinder(CRegion & Region, unsigned int TimeSteps, string outputname);//output for ehd isolated conducting cylinder test, Lopez 2011
+  void outTecplotEHDDrop(CRegion & Region, unsigned int TimeSteps, string outputname);//output for ehd droplet deformation test, Lopez 2011
+  
   void OutTecplotMsh(CRegion & Region,unsigned int TimeSteps);
 
   void OutVTK(CRegion & Region, unsigned int TimeSteps, string ouputname);//output VTK file format, for paraview 2019.10.30
