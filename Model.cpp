@@ -11,7 +11,7 @@ CModel::~CModel()
 void CModel::EHDPlannar(CRegion &Region)
 {
   unsigned int N=33;//the particle number in x and y directions
-  // N=131;
+  //N=65;
 
   Region._ControlSPH._CellNumx=Region._ControlSPH._CellNumy=N;//the box number, specified here, the value in .k file will not be used
 
@@ -347,13 +347,15 @@ void CModel::EHDIsoCondCylinder (CRegion & Region)
 void CModel::EHDDrop (CRegion & Region)
 {
   unsigned int N=64;//the particle number in x and y directions
-  N=512;
+  N=128;
+  unsigned int Nx=N;
+  unsigned int Ny=N;
   Region._ControlSPH._CellNumx=Region._ControlSPH._CellNumy=N;//the box number, specified here, the value in .k file will not be used
 
-  double xlb=-2;//left bottom corner
-  double ylb=-2;
-  double xru=2;//right upper corner
-  double yru=2;
+  double xlb=-1;//left bottom corner
+  double ylb=-1;
+  double xru=1;//right upper corner
+  double yru=1;
 
   double psize=(xru-xlb)/(N);// particle size
 
@@ -361,30 +363,32 @@ void CModel::EHDDrop (CRegion & Region)
   double ymin=ylb-psize;
 
   // Region._PtList.clear();
-  Region._PtList.resize((N+3)*(N+3));
+  Region._PtList.resize((Ny+3)*(Nx+1));
 
   double r2;
   double R0=0.1;
   CBasePt * BasePtPtr;
   
-  for(unsigned int i=0;i!=N+3;++i)
+  for(unsigned int i=0;i!=Ny+3;++i)
     {
-      for(unsigned int j=0;j!=N+3;++j)
+      for(unsigned int j=0;j!=Nx+1;++j)
         {
-          BasePtPtr=&Region._PtList[i*(N+3)+j];
-          BasePtPtr->_ID=i*(N+3)+j+1;
+          BasePtPtr=&Region._PtList[i*(Nx+1)+j];
+          BasePtPtr->_ID=i*(Nx+1)+j+1;
 
           BasePtPtr->_x=xmin+j*psize;
           BasePtPtr->_y=ymin+i*psize;
 
-          if(i==0||i==N+2||j==0||j==N+2)//the outer layer, end dummy pt
+          //if(i==0||i==Ny+2||j==0||j==Nx+2)//the outer layer, end dummy pt
+          if(i==0||i==Ny+2)//the outer layer, ehd dummy pt
             {
               BasePtPtr->_PID=4;
               BasePtPtr->_Type=enEHDDumPt;
               BasePtPtr->_eRho=0.0;
             }
 
-          else if(i==1||i==N+1||j==1||j==N+1)
+          // else if(i==1||i==Ny+1||j==1||j==Nx+1)
+          else if(i==1||i==Ny+1)
             {
               BasePtPtr->_PID=3;
               BasePtPtr->_Type=enEHDBndPt;
@@ -393,11 +397,12 @@ void CModel::EHDDrop (CRegion & Region)
           else
             {
               BasePtPtr->_Type=enSPHPt;
-              if(pow(BasePtPtr->_x,2)+pow(BasePtPtr->_y,2)<=R0*R0)
-                {
-                  BasePtPtr->_PID=1;
-                  BasePtPtr->_eRho=0.0;
-                }
+               if(pow(BasePtPtr->_x,2)+pow(BasePtPtr->_y,2)<=R0*R0)
+                 //if(fabs(BasePtPtr->_x)<=R0&&fabs(BasePtPtr->_y)<=R0)
+                 {
+                   BasePtPtr->_PID=1;
+                   BasePtPtr->_eRho=0.0;
+                 }
               else
                 {
                   BasePtPtr->_PID=2;
@@ -431,9 +436,10 @@ void CModel::EHDDrop (CRegion & Region)
 
           double Einf=1.0;//4.3 step 1 ,test for static case
           if(BasePtPtr->_PID!=1)
-            BasePtPtr->_ePhi=Einf*BasePtPtr->_x;
+            BasePtPtr->_ePhi=Einf*BasePtPtr->_y;
 
         }
     }
+
 
 }

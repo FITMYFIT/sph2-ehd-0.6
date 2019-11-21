@@ -29,38 +29,40 @@ void CGetDumProperty::Solve( CRegion &Region )
 	{
 		PtPtr=&Region._PtList[i];
 
-		if (PtPtr->_Type==enDumPt)
-		{
-			PtPtr->_p=0.0;
+		if (PtPtr->_Type==enDumPt||PtPtr->_Type==enEHDBndPt||PtPtr->_Type==enEHDDumPt)
+      {
+        PtPtr->_p=0.0;
 
-      PtPtr->_ePhi=0.0;//2019.10.15
+        //PtPtr->_ePhi=0.0;//2019.10.15
       
         //PtPtr->_p=-2*PtPtr->_DistanceBnd*PtPtr->_rho*(g*PtPtr->_Nny);//S Marrone 2011
 
-			PtPtr->_CSPMCoef=0.0;//这里的_CSPMCoef实际上是XYHu　2012 Equ27中的分母（sum(Wwf)）
-		}
+        PtPtr->_CSPMCoef=0.0;//这里的_CSPMCoef实际上是XYHu　2012 Equ27中的分母（sum(Wwf)）
+      }
 	}
 
   //	2.插值得到Dummy粒子的压力值
   //X Y Hu 2012 Equ 27, aw not considered
 	for (unsigned int i=0;i!=Region._PtPairList.size();++i)
 	{
-		if (Region._PtPairList[i]._Type==enSPHDumPtPair)
-		{
-			PtiPtr=Region._PtPairList[i]._PtiPtr;
-			PtjPtr=Region._PtPairList[i]._PtjPtr;
+		if (Region._PtPairList[i]._Type==enSPHDumPtPair
+        ||Region._PtPairList[i]._Type==enSPHEHDBndPtPair
+        ||Region._PtPairList[i]._Type==enSPHEHDDumPtPair)
+      {
+        PtiPtr=Region._PtPairList[i]._PtiPtr;
+        PtjPtr=Region._PtPairList[i]._PtjPtr;
 
-			KnlPtr=&Region._KnlList[i];
+        KnlPtr=&Region._KnlList[i];
 
-			xij=PtiPtr->_x-PtjPtr->_x;
-			yij=PtiPtr->_y-PtjPtr->_y;
+        xij=PtiPtr->_x-PtjPtr->_x;
+        yij=PtiPtr->_y-PtjPtr->_y;
 
-			PtjPtr->_CSPMCoef+=KnlPtr->_W;//equ 27 分母
+        PtjPtr->_CSPMCoef+=KnlPtr->_W;//equ 27 分母
 
-			PtjPtr->_p+=PtiPtr->_p*KnlPtr->_W-g*yij*PtiPtr->_rho*KnlPtr->_W;
+        PtjPtr->_p+=PtiPtr->_p*KnlPtr->_W-g*yij*PtiPtr->_rho*KnlPtr->_W;
 
-      PtjPtr->_ePhi+=PtiPtr->_ePhi*KnlPtr->_W;
-		}
+        //PtjPtr->_ePhi+=PtiPtr->_ePhi*KnlPtr->_W;
+      }
 	}
 
 	//double chi=0;//用来求密度的参数，和弱可压缩状态方程的参数一致
@@ -160,19 +162,19 @@ void CGetDumProperty::Solve( CRegion &Region )
 	{
 		PtPtr=&Region._PtList[i];
 
-		if (PtPtr->_Type==enDumPt)
-		{
-			if (PtPtr->_CSPMCoef!=0)
-			{
-				PtPtr->_u/=PtPtr->_CSPMCoef;
-				PtPtr->_v/=PtPtr->_CSPMCoef;
+		if (PtPtr->_Type==enDumPt||PtPtr->_Type==enEHDDumPt||PtPtr->_Type==enEHDBndPt)
+      {
+        if (PtPtr->_CSPMCoef!=0)
+          {
+            PtPtr->_u/=PtPtr->_CSPMCoef;
+            PtPtr->_v/=PtPtr->_CSPMCoef;
 
-				PtPtr->_u=2*PtPtr->_uwall-PtPtr->_u;
-				PtPtr->_v=2*PtPtr->_vwall-PtPtr->_v;
+            PtPtr->_u=2*PtPtr->_uwall-PtPtr->_u;
+            PtPtr->_v=2*PtPtr->_vwall-PtPtr->_v;
 
-				PtPtr->_CSPMCoef=0.0;
-			}
-		}
+            PtPtr->_CSPMCoef=0.0;
+          }
+      }
 	}
 
 }

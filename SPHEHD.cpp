@@ -737,11 +737,18 @@ void CSPHEHD::Solve2(CRegion & Region, unsigned int Timesteps)
       BasePtPtr->_Fex+=BasePtPtr->_eRho*Ex;
       BasePtPtr->_Fey+=BasePtPtr->_eRho*Ey;
     }
-
+  
   CKFile kfiletemp;
-  kfiletemp.outTecplotEHDPLANNER(Region,Timesteps,"xxehd-case3");
+  // kfiletemp.outTecplotEHDPLANNER(Region,Timesteps,"xxehd-case3");
+  if(Timesteps==0||((Timesteps+1)%Region._ControlSPH._OutputSteps)==0)
+    {
+      kfiletemp.outTecplotEHDDrop(Region, Timesteps+1,"xx"+Region._ControlSPH._InfileName);
+      // kfiletemp.outTecplotIsoCondCylinder(Region, Timesteps+1,"xx"+Region._ControlSPH._InfileName);
+      // kfiletemp.outTecplotEHDBulkRelax(Region, Timesteps+1,"xx"+Region._ControlSPH._InfileName);
+    }
 
   cout<<"----------------------------------------------"<<endl;
+
 }
 
 void CSPHEHD::Solve3(CRegion & Region, unsigned int Timesteps)
@@ -1126,9 +1133,10 @@ void CSPHEHD::Solve3(CRegion & Region, unsigned int Timesteps)
   // kfiletemp.outTecplotEHDPLANNER(Region,Timesteps,"xxehd-case3");
   if(Timesteps==0||((Timesteps+1)%Region._ControlSPH._OutputSteps)==0)
     {
+      //kfiletemp.outTecplotEHDPLANNER(Region, Timesteps+1,"xx"+Region._ControlSPH._InfileName);
        kfiletemp.outTecplotEHDDrop(Region, Timesteps+1,"xx"+Region._ControlSPH._InfileName);
        // kfiletemp.outTecplotIsoCondCylinder(Region, Timesteps+1,"xx"+Region._ControlSPH._InfileName);
-      // kfiletemp.outTecplotEHDBulkRelax(Region, Timesteps+1,"xx"+Region._ControlSPH._InfileName);
+      //kfiletemp.outTecplotEHDBulkRelax(Region, Timesteps+1,"xx"+Region._ControlSPH._InfileName);
     }
 
   cout<<"----------------------------------------------"<<endl;

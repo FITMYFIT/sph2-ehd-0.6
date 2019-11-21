@@ -15,10 +15,10 @@ void CSPHSolver::Input()
 	_Region._ControlSPH._InfileName=
 		/*"static tank"*/
 		// "Lid_driven";
-    // "ehdplanercase2";
-    // "EHDBulkRelax";
+    //"ehdplanercase3";
+    //  "EHDBulkRelax";
     //  "EHDIsoCondCylinder";
-    "ehddrop";
+  "ehddrop";
   //"dambreak-ETSIN-3";
   //"dambreak-han";
   /*"shelldrop"*/
@@ -123,12 +123,12 @@ void CSPHSolver::Run()
 
     cout<<"4.start solving equation of station"<<endl;
 
-    //_SPHEOS.Solve(_Region);
+    // _SPHEOS.Solve(_Region);
 
     cout<<"4.equation of station has been solved."<<endl;
 
     //插值得到Dummy粒子的压力并计算出其密度
-    //  _GetDumProperty.Solve(_Region);
+    // _GetDumProperty.Solve(_Region);
 
     cout<<"5.start solving momentum equation."<<endl;
 
@@ -140,11 +140,11 @@ void CSPHSolver::Run()
 
     if(_Region._ControlSPH._RunMod==1)//显式计算时需要LeapFrog
       {
-        _UpdatePosition.LeapFrogUpdate(_Region,_DeltaT._DeltaT,_DeltaT._DeltaT1,_TimeSteps);
-        }
+        // _UpdatePosition.LeapFrogUpdate(_Region,_DeltaT._DeltaT,_DeltaT._DeltaT1,_TimeSteps);
+      }
       else//隐式推进粒子坐标
         {
-          _UpdatePosition.ImplicitUpdate(_Region);
+          // _UpdatePosition.ImplicitUpdate(_Region);
         }
       cout<<"6.particle position has been updated."<<endl;
 
@@ -166,9 +166,9 @@ void CSPHSolver::Run()
         }
 
       //if particles not move, no need to clear particle pair list
-      // _NblSch.Clear(_Region);
+      //_NblSch.Clear(_Region);
 
-      //_GetKnlList.ClearKnlList(_Region);
+      // _GetKnlList.ClearKnlList(_Region);
 
       _CalculateRange._Clear(_Region);
 	}

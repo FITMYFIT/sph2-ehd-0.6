@@ -1291,19 +1291,20 @@ void CKFile::outTecplotEHDDrop (CRegion & Region,unsigned int TimeSteps, string 
   // for(unsigned int i=2244;i!=2278;++i) //N=64
   // for(unsigned int i=33540;i!=33668;++i) //N=256,2^8
   //for(unsigned int i=8580;i!=8644;++i) //N=128,2^7
-  for(unsigned int i=132612;i!=132868;++i) //N=256,2^9
+  for(unsigned int i=25347;i!=25412;++i) //N=128,2^7,3 blocks
+    // for(unsigned int i=132612;i!=132868;++i) //N=256,2^9
     //for(unsigned int i=74884;i!=75076;++i) //N=256+128, L=3
     {
       //  ErExact=(Region._PtList[i]._x<R?0:Q0/(2*PI*2*Region._PtList[i]._x));
-      //if(ISZERO(Region._PtList[i]._y))
-      {
-        outfile
-          <<setiosflags(ios_base::scientific)
-          <<setprecision(16)
-          <<setw(26)<<Region._PtList[i]._x<<" "
-          <<setw(26)<<-Region._PtList[i]._eEx<<" "
-          //  <<setw(26)<<ErExact<<" "
-          <<endl;
+    //if(ISZERO(Region._PtList[i]._y))
+    {
+      outfile
+        <<setiosflags(ios_base::scientific)
+        <<setprecision(16)
+        <<setw(26)<<Region._PtList[i]._x<<" "
+        <<setw(26)<<-Region._PtList[i]._eEx<<" "
+        //  <<setw(26)<<ErExact<<" "
+<<endl;
       }
     }
 
@@ -1386,24 +1387,29 @@ void CKFile::outTecplotEHDPLANNER(CRegion & Region,unsigned int TimeSteps, strin
       if(SPHPtPtr->_Type==enSPHPt)
         {
           y=SPHPtPtr->_y;
-          // //case 1: dielectric-dielectric
-          // beta=3;
-          // if(SPHPtPtr->_y<0)//lower
-          //   {
-          //     Phiext[i]=(-2*y+beta)/(1+beta);
-          //     Eext[i]=2/(1+beta);
-          //   }
-          // else//upper
-          //   {
-          //     Phiext[i]=beta*(-2*y+1)/(1+beta);
-          //     Eext[i]=2*beta/(1+beta);
-          //   }
+          //case 1: dielectric-dielectric
+          if(Region._ControlSPH._InfileName=="ehdplanercase1")
+            {
+              beta=3;
+              if(SPHPtPtr->_y<0)//lower
+                {
+                  Phiext[i]=(-2*y+beta)/(1+beta);
+                  Eext[i]=2/(1+beta);
+                }
+              else//upper
+                {
+                  Phiext[i]=beta*(-2*y+1)/(1+beta);
+                  Eext[i]=2*beta/(1+beta);
+                }
+            }
 
           //case 2: conducting-conducting
-          beta=3;
-          eta=2;
-          //a=10;
-          if(SPHPtPtr->_y<0)//lower
+          if(Region._ControlSPH._InfileName=="ehdplanercase2")
+            {
+              beta=3;
+              eta=2;
+              //a=10;
+              if(SPHPtPtr->_y<0)//lower
             {
               Phiext[i]=(-2*y+eta)/(1+eta);
               Eext[i]=2/(1+eta);
@@ -1413,18 +1419,22 @@ void CKFile::outTecplotEHDPLANNER(CRegion & Region,unsigned int TimeSteps, strin
               Phiext[i]=eta*(-2*y+1)/(1+eta);
               Eext[i]=2*eta/(1+eta);
             }
-          // //case 3: conducting-dielectric
-          //      beta=3;
-          // if(SPHPtPtr->_y<0)//lower
-          //   {
-          //     Phiext[i]=1;
-          //     Eext[i]=0;
-          //   }
-          // else//upper
-          //   {
-          //     Phiext[i]=-2*y+1;
-          //     Eext[i]=2;
-          //   }
+            }
+          //case 3: conducting-dielectric
+          if(Region._ControlSPH._InfileName=="ehdplanercase3")
+            {
+              beta=3;
+              if(SPHPtPtr->_y<0)//lower
+            {
+              Phiext[i]=1;
+              Eext[i]=0;
+            }
+          else//upper
+            {
+              Phiext[i]=-2*y+1;
+              Eext[i]=2;
+            }
+            }
 
           //if case 3, lower, no errorE
           if(!ISZERO(Eext[i]))
