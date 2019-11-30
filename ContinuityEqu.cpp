@@ -49,26 +49,28 @@ void CContinuityEqu::Solve(CRegion &Region,unsigned int TimeSteps)
 			}
 		}
 
-		if(Region._PtPairList[i]._Type==enSPHDumPtPair)
-		{
-			PtiPtr=Region._PtPairList[i]._PtiPtr;
-			PtjPtr=Region._PtPairList[i]._PtjPtr;
-			KnlPtr=&Region._KnlList[i];
+		if(Region._PtPairList[i]._Type==enSPHDumPtPair
+       ||Region._PtPairList[i]._Type==enSPHEHDBndPtPair
+       ||Region._PtPairList[i]._Type==enSPHEHDDumPtPair)
+      {
+        PtiPtr=Region._PtPairList[i]._PtiPtr;
+        PtjPtr=Region._PtPairList[i]._PtjPtr;
+        KnlPtr=&Region._KnlList[i];
 
-			uij=PtiPtr->_u-PtjPtr->_u;
-			vij=PtiPtr->_v-PtjPtr->_v;
+        uij=PtiPtr->_u-PtjPtr->_u;
+        vij=PtiPtr->_v-PtjPtr->_v;
 			
 
-			modulev=sqrt(PtiPtr->_u*PtiPtr->_u+PtiPtr->_v*PtiPtr->_v);
+        modulev=sqrt(PtiPtr->_u*PtiPtr->_u+PtiPtr->_v*PtiPtr->_v);
 
-			//if (fabs(uij*PtjPtr->_Nnx+vij*PtjPtr->_Nny)>=0.00001*modulev)
-			{
-				//temp=uij*KnlPtr->_Wxj+vij*KnlPtr->_Wyj;//用粒子j的光滑长度计算出的核函数信息
-				temp=uij*KnlPtr->_Wx+vij*KnlPtr->_Wy;//用粒子j的光滑长度计算出的核函数信息
+        //if (fabs(uij*PtjPtr->_Nnx+vij*PtjPtr->_Nny)>=0.00001*modulev)
+        {
+          //temp=uij*KnlPtr->_Wxj+vij*KnlPtr->_Wyj;//用粒子j的光滑长度计算出的核函数信息
+          temp=uij*KnlPtr->_Wx+vij*KnlPtr->_Wy;//用粒子j的光滑长度计算出的核函数信息
 
-				PtiPtr->_drho+=PtiPtr->_m*temp;
-			}
-		}
+          PtiPtr->_drho+=PtiPtr->_m*temp;
+        }
+      }
 	}
 
 	//Artificial Diffusive项（人工耗散项）2011—S Marrone

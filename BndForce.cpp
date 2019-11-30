@@ -73,82 +73,86 @@ void CBndForce::Solve(CRegion &Region)
 	//}
 
 
-	////X Y Hu压力边界施加方法
-	//for (unsigned int i=0;i!=Region._PtPairList.size();++i)
-	//{
-	//	if (Region._PtPairList[i]._Type==enSPHDumPtPair)
-	//	{		
-	//		PtiPtr=Region._PtPairList[i]._PtiPtr;
-	//		PtjPtr=Region._PtPairList[i]._PtjPtr;
-
-	//		KnlPtr=&Region._KnlList[i];
-
-	//		njx=PtjPtr->_Nnx;
-	//		njy=PtjPtr->_Nny;
-
-	//		pi=PtiPtr->_p;
-	//		pj=PtjPtr->_p;
-
-	//		mi=PtiPtr->_m;
-	//		mj=PtjPtr->_m;
-
-	//		rhoi=PtiPtr->_rho;
-	//		rhoj=PtjPtr->_rho;
-
-	//		bndnorm=mj*(pi+pj)/rhoi/rhoj;
-
-	//		PtiPtr->_du-=bndnorm*KnlPtr->_Wx;
-	//		PtiPtr->_dv-=bndnorm*KnlPtr->_Wy;
-
-	//		PtiPtr->_AccBndx-=bndnorm*KnlPtr->_Wx;
-	//		PtiPtr->_AccBndy-=bndnorm*KnlPtr->_Wy;
-	//	}		
-	//}
-
-
-	//新压力边界施加方法
-	//fi=sum(mj/rhoj*(Pi+Pj)/rhoi/rhoj*(Wx*Nnx+Wy*Nny))
+  //	X Y Hu压力边界施加方法
 	for (unsigned int i=0;i!=Region._PtPairList.size();++i)
 	{
-		if (Region._PtPairList[i]._Type==enSPHDumPtPair)
-		{		
-			PtiPtr=Region._PtPairList[i]._PtiPtr;
-			PtjPtr=Region._PtPairList[i]._PtjPtr;
+		if (Region._PtPairList[i]._Type==enSPHDumPtPair
+        ||Region._PtPairList[i]._Type==enSPHEHDBndPtPair
+        ||Region._PtPairList[i]._Type==enSPHEHDDumPtPair)
+      {		
+        PtiPtr=Region._PtPairList[i]._PtiPtr;
+        PtjPtr=Region._PtPairList[i]._PtjPtr;
 
-			KnlPtr=&Region._KnlList[i];
+        KnlPtr=&Region._KnlList[i];
 
-			njx=PtjPtr->_Nnx;
-			njy=PtjPtr->_Nny;
+        njx=PtjPtr->_Nnx;
+        njy=PtjPtr->_Nny;
 
-			pi=PtiPtr->_p;
-			pj=PtjPtr->_p;
+        pi=PtiPtr->_p;
+        pj=PtjPtr->_p;
 
-			mi=PtiPtr->_m;
-			mj=PtjPtr->_m;
+        mi=PtiPtr->_m;
+        mj=PtjPtr->_m;
 
-			rhoi=PtiPtr->_rho;
-			rhoj=PtjPtr->_rho;
+        rhoi=PtiPtr->_rho;
+        rhoj=PtjPtr->_rho;
 
-			uij=PtiPtr->_u-PtjPtr->_u;
-			vij=PtiPtr->_v-PtjPtr->_v;
+        bndnorm=mj*(pi+pj)/rhoi/rhoj;
 
-			modulev=sqrt(PtiPtr->_u*PtiPtr->_u+PtiPtr->_v*PtiPtr->_v);
+        PtiPtr->_du-=bndnorm*KnlPtr->_Wx;
+        PtiPtr->_dv-=bndnorm*KnlPtr->_Wy;
 
-			//if (fabs(uij*PtjPtr->_Nnx+vij*PtjPtr->_Nny)>=0.01*modulev)
-			{
-				if (pi+pj>0)
-				{
-					bndnorm=mj*(pi+pj)/rhoi/rhoj*(KnlPtr->_Wx*njx+KnlPtr->_Wy*njy);
-					//bndnorm=mj*(pi/(rhoi*rhoi)+pj/(rhoj*rhoj))*(KnlPtr->_Wx*njx+KnlPtr->_Wy*njy);
-
-					PtiPtr->_du-=bndnorm*njx;
-					PtiPtr->_dv-=bndnorm*njy;
-
-					PtiPtr->_AccBndx-=bndnorm*njx;
-					PtiPtr->_AccBndy-=bndnorm*njy;
-				}
-			}			
-		}		
+        PtiPtr->_AccBndx-=bndnorm*KnlPtr->_Wx;
+        PtiPtr->_AccBndy-=bndnorm*KnlPtr->_Wy;
+      }		
 	}
+
+
+	// //新压力边界施加方法
+	// //fi=sum(mj/rhoj*(Pi+Pj)/rhoi/rhoj*(Wx*Nnx+Wy*Nny))
+	// for (unsigned int i=0;i!=Region._PtPairList.size();++i)
+	// {
+	// 	if (Region._PtPairList[i]._Type==enSPHDumPtPair
+  //       ||Region._PtPairList[i]._Type==enSPHEHDBndPtPair
+  //       ||Region._PtPairList[i]._Type==enSPHEHDDumPtPair)
+  //     {		
+  //       PtiPtr=Region._PtPairList[i]._PtiPtr;
+  //       PtjPtr=Region._PtPairList[i]._PtjPtr;
+
+  //       KnlPtr=&Region._KnlList[i];
+
+  //       njx=PtjPtr->_Nnx;
+  //       njy=PtjPtr->_Nny;
+
+  //       pi=PtiPtr->_p;
+  //       pj=PtjPtr->_p;
+
+  //       mi=PtiPtr->_m;
+  //       mj=PtjPtr->_m;
+
+  //       rhoi=PtiPtr->_rho;
+  //       rhoj=PtjPtr->_rho;
+
+  //       uij=PtiPtr->_u-PtjPtr->_u;
+  //       vij=PtiPtr->_v-PtjPtr->_v;
+
+  //       modulev=sqrt(PtiPtr->_u*PtiPtr->_u+PtiPtr->_v*PtiPtr->_v);
+
+  //       //if (fabs(uij*PtjPtr->_Nnx+vij*PtjPtr->_Nny)>=0.01*modulev)
+  //       {
+  //         if (pi+pj>0)
+  //           {
+  //             bndnorm=mj*(pi+pj)/rhoi/rhoj*(KnlPtr->_Wx*njx+KnlPtr->_Wy*njy);
+  //             //bndnorm=mj*(pi/(rhoi*rhoi)+pj/(rhoj*rhoj))*(KnlPtr->_Wx*njx+KnlPtr->_Wy*njy);
+
+  //             PtiPtr->_du-=bndnorm*njx;
+  //             PtiPtr->_dv-=bndnorm*njy;
+
+  //             PtiPtr->_AccBndx-=bndnorm*njx;
+  //             PtiPtr->_AccBndy-=bndnorm*njy;
+  //           }
+  //       }			
+  //     }		
+  //}
 
 }
