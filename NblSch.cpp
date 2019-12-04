@@ -230,7 +230,6 @@ void CNblSch::ResizeBox(size_t CellNumx,size_t CellNumy/*,size_t CellNumz*/)
       MAXX=Region._ControlSPH._PerdBndMaxX;
       MINX=Region._ControlSPH._PerdBndMinX;
 
-      //周期性边界3.周期性边界的粒子对搜索
       for(unsigned int f=0;f<Region._PtList.size();f++)
         {
           PtPtr=&Region._PtList[f];

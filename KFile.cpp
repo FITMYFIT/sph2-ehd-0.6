@@ -339,7 +339,7 @@ void CKFile::Input(CRegion & Region)
 		}
 
 		CWeaklyCompress *WeaklyCompressPtr;
-		if(keyword=="*EOS_WEEKLY_COMPRESS")
+		if(keyword=="*EOS_WEAKLY_COMPRESS")
 		{
 			getline(infile,line);
 
@@ -483,129 +483,136 @@ void CKFile::Input(CRegion & Region)
 			}
 		}
 
-		if(keyword=="*ELEMENT_SHELL_THICKNESS")
-		{
-			if(Region._ControlSPH._StartStep==0)//从0时间步开始计算时读入该部分数据
-			{
+		if(keyword=="*ELEMENT_SHELL")
+      {
+        if(Region._ControlSPH._StartStep==0)//从0时间步开始计算时读入该部分数据
+          {
 
-				for(;;)
-				{
-					vector<double>tPosx(4);
-					vector<double>tPosy(4);
-					vector<double>tPartile(3);
+            for(;;)
+              {
+                vector<double>tPosx(4);
+                vector<double>tPosy(4);
+                vector<double>tPartile(3);
 
-					CBasePt BasePt;
+                CBasePt BasePt;
 
-					infile>>tch;
-					infile.seekg(-1,ios::cur);
-					if((tch=='*')||(tch=='$'))	break;
+                infile>>tch;
+                infile.seekg(-1,ios::cur);
+                if((tch=='*')||(tch=='$'))	break;
 
-					infile>>value;
-					infile.ignore();
-					ID=size_t(value);
-					BasePt._ID=ID;
+                infile>>value;
+                infile.ignore();
+                ID=size_t(value);
+                BasePt._ID=ID;
 
-					infile>>value;
-					infile.ignore();
-					PID=size_t(value);
-					BasePt._PID=PID;
+                infile>>value;
+                infile.ignore();
+                PID=size_t(value);
+                BasePt._PID=PID;
 
 
-					infile>>value;
-					infile.ignore();
-					ID=size_t(value);
-					tPosx[0]=X[ID-1];
-					tPosy[0]=Y[ID-1];
+                infile>>value;
+                infile.ignore();
+                ID=size_t(value);
+                tPosx[0]=X[ID-1];
+                tPosy[0]=Y[ID-1];
 
-					infile>>value;
-					infile.ignore();
-					ID=size_t(value);
-					tPosx[1]=X[ID-1];
-					tPosy[1]=Y[ID-1];
+                infile>>value;
+                infile.ignore();
+                ID=size_t(value);
+                tPosx[1]=X[ID-1];
+                tPosy[1]=Y[ID-1];
 
-					infile>>value;
-					infile.ignore();
-					ID=size_t(value);
-					tPosx[2]=X[ID-1];
-					tPosy[2]=Y[ID-1];
+                infile>>value;
+                infile.ignore();
+                ID=size_t(value);
+                tPosx[2]=X[ID-1];
+                tPosy[2]=Y[ID-1];
 
-					infile>>value;
-					infile.ignore();
-					ID=size_t(value);
-					tPosx[3]=X[ID-1];
-					tPosy[3]=Y[ID-1];
+                infile>>value;
+                //infile.ignore();
+                ID=size_t(value);
+                tPosx[3]=X[ID-1];
+                tPosy[3]=Y[ID-1];
 
-					for(int i=0;i<4;i++)
-					{
-						infile>>value;
-						infile.ignore();
-					}
+                //in some truegrid edition, the following is not needed
+                // for(int i=0;i<4;i++)
+                // {
+                // 	infile>>value;
+                // 	infile.ignore();
+                // }
 
-					Center(tPosx,tPosy,tPartile);
+                Center(tPosx,tPosy,tPartile);
 
-					BasePt._x=tPartile[0];
-					BasePt._y=tPartile[1];
-					BasePt._Volume=tPartile[2];
+                BasePt._x=tPartile[0];
+                BasePt._y=tPartile[1];
+                BasePt._Volume=tPartile[2];
 
-					BasePt._u=_InitSPH[PID-1][0];
-					BasePt._v=_InitSPH[PID-1][1];
+                BasePt._u=_InitSPH[PID-1][0];
+                BasePt._v=_InitSPH[PID-1][1];
 
-					BasePt._uwall=_InitSPH[PID-1][0];//暂时的，用于给壁面part的速度赋值，在GetBndProperty中用到了
-					BasePt._vwall=_InitSPH[PID-1][1];//暂时的，用于给壁面part的速度赋值，在GetBndProperty中用到了
+                BasePt._uwall=_InitSPH[PID-1][0];//暂时的，用于给壁面part的速度赋值，在GetBndProperty中用到了
+                BasePt._vwall=_InitSPH[PID-1][1];//暂时的，用于给壁面part的速度赋值，在GetBndProperty中用到了
 
-					BasePt._rho0=_InitSPH[PID-1][2];
-					BasePt._rho =_InitSPH[PID-1][2];
-					BasePt._T =_InitSPH[PID-1][3];
+                BasePt._rho0=_InitSPH[PID-1][2];
+                BasePt._rho =_InitSPH[PID-1][2];
+                BasePt._T =_InitSPH[PID-1][3];
 
-					BasePt._m=BasePt._rho0*BasePt._Volume;
+                BasePt._m=BasePt._rho0*BasePt._Volume;
 
-					BasePt._h=Region._PartList[PID-1]._HdivDp*pow(BasePt._Volume,0.5);
-					BasePt._r=2.0*BasePt._h;
-					BasePt._C0=Region._PartList[PID-1]._C0;
+                BasePt._h=Region._PartList[PID-1]._HdivDp*pow(BasePt._Volume,0.5);
+                BasePt._r=2.0*BasePt._h;
+                BasePt._C0=Region._PartList[PID-1]._C0;
 
-					BasePt._Cs=Region._ControlSPH._Cs;//为每个粒子的声速赋初值
+                BasePt._Cs=Region._ControlSPH._Cs;//为每个粒子的声速赋初值
 
-					if(Region._ControlSPH._SPHST==1)
-					{
-						BasePt._H=Region._PartList[PID-1]._STHvsh*BasePt._h;
-						BasePt._rr=2*BasePt._H;
-					}
+                if(Region._ControlSPH._SPHST==1)
+                  {
+                    BasePt._H=Region._PartList[PID-1]._STHvsh*BasePt._h;
+                    BasePt._rr=2*BasePt._H;
+                  }
 
-					BasePt._p=0;
-					BasePt._Iflag=1;
-					switch(Region._PartList[PID-1]._PartType)
-					{
-				 	  case enSPH:
-								BasePt._Type=enSPHPt;
-								break;
-				 	  case enNULL:
-								BasePt._Type=enNULLPt;
-								break;
-				 	  case enBnd:
-								BasePt._Type=enBndPt;
-								break;
-				 	  case enGhost1:
-								BasePt._Type=enGhost1Pt;
-								break;
-						case enGhost2:
-							BasePt._Type=enGhost2Pt;
-							break;
-						case enDummy:
-							BasePt._Type=enDumPt;
-							break;
-						default:
-								break;
-					}
+                BasePt._p=0;
+                BasePt._Iflag=1;
+                switch(Region._PartList[PID-1]._PartType)
+                  {
+                  case enSPH:
+                    BasePt._Type=enSPHPt;
+                    break;
+                  case enNULL:
+                    BasePt._Type=enNULLPt;
+                    break;
+                  case enBnd:
+                    BasePt._Type=enBndPt;
+                    break;
+                  case enGhost1:
+                    BasePt._Type=enGhost1Pt;
+                    break;
+                  case enGhost2:
+                    BasePt._Type=enGhost2Pt;
+                    break;
+                  case enDummy:
+                    BasePt._Type=enDumPt;
+                    break;
+                  case enEHDBnd:
+                    BasePt._Type=enEHDBndPt;
+                    break;
+                  case enEHDDum:
+                    BasePt._Type=enEHDDumPt;
+                    break;
+                  default:
+                    break;
+                  }
 
-					//Region._PartList[PID-1]._PartPtList.push_back(&BasePt);
+                //Region._PartList[PID-1]._PartPtList.push_back(&BasePt);
 
-					Region._PtList.push_back(BasePt);
-					tPosx.clear();
-					tPosy.clear();
-					tPartile.clear();
-				}
-			}
-		}
+                Region._PtList.push_back(BasePt);
+                tPosx.clear();
+                tPosy.clear();
+                tPartile.clear();
+              }
+          }
+      }
 
 		if(keyword=="*END")
 		{
@@ -759,6 +766,8 @@ void CKFile::OutTecplot2(CRegion & Region,unsigned int TimeSteps, string outputn
     <<"\"PTSIZE\" "//particle size, for visualization simpilicity in tecplot
     <<"\"IFLAG\" "
     <<"\"CI\" "
+     <<"\"NX\" "
+     <<"\"NY\" "
     <<"\"EEPSILON\" "
     <<"\"EKAPPA\" "
     <<"\"ERHOE\" "
@@ -793,6 +802,8 @@ void CKFile::OutTecplot2(CRegion & Region,unsigned int TimeSteps, string outputn
           <<setw(26)<<SPHPtPtr->_h/(Region._PartList[SPHPtPtr->_PID-1]._HdivDp)<<" "
           <<setw(26)<<SPHPtPtr->_Iflag<<" "
           <<setw(26)<<SPHPtPtr->_C<<" "
+          <<setw(26)<<SPHPtPtr->_Nnx<<" "
+          <<setw(26)<<SPHPtPtr->_Nny<<" "
           <<setw(26)<<SPHPtPtr->_eEpsilon<<" "
           <<setw(26)<<SPHPtPtr->_eKappa<<" "
           <<setw(26)<<SPHPtPtr->_eRho<<" "
@@ -1279,32 +1290,38 @@ void CKFile::outTecplotEHDDrop (CRegion & Region,unsigned int TimeSteps, string 
     }
 
   
-  outfile
-    <<"VARIABLES= "
-    <<"\"AXISX\" "
-    <<"\"Er\" "
-    // <<"\"ErExt\" "
-    <<endl;
-  outfile<<"ZONE T="<<"\""<<Region._ControlSPH._InfileName<<" t= "<<t<<"\" I= "<<34<<", F=POINT"<<endl;
+  // outfile
+  //   <<"VARIABLES= "
+  //   <<"\"AXISX\" "
+  //   <<"\"Er\" "
+  //   // <<"\"ErExt\" "
+  //   <<endl;
+  // outfile<<"ZONE T="<<"\""<<Region._ControlSPH._InfileName<<" t= "<<t<<"\" I= "<<34<<", F=POINT"<<endl;
 
   double R=2.5; //kappa1/kappa2
   // for(unsigned int i=2244;i!=2278;++i) //N=64
-  // for(unsigned int i=33540;i!=33668;++i) //N=256,2^8
-  //for(unsigned int i=8580;i!=8644;++i) //N=128,2^7
-  for(unsigned int i=25347;i!=25412;++i) //N=128,2^7,3 blocks
-    // for(unsigned int i=132612;i!=132868;++i) //N=256,2^9
+  for(unsigned int i=33540;i!=33668;++i) //N=256,2^8
+    // for(unsigned int i=8580;i!=8644;++i) //N=128,2^7
+    // for(unsigned int i=25347;i!=25412;++i) //N=128,2^7,3 blocks
+    //for(unsigned int i=132612;i!=132868;++i) //N=512,2^9
     //for(unsigned int i=74884;i!=75076;++i) //N=256+128, L=3
     {
       //  ErExact=(Region._PtList[i]._x<R?0:Q0/(2*PI*2*Region._PtList[i]._x));
-    //if(ISZERO(Region._PtList[i]._y))
-    {
-      outfile
-        <<setiosflags(ios_base::scientific)
-        <<setprecision(16)
-        <<setw(26)<<Region._PtList[i]._x<<" "
-        <<setw(26)<<-Region._PtList[i]._eEx<<" "
-        //  <<setw(26)<<ErExact<<" "
-<<endl;
+      //if(ISZERO(Region._PtList[i]._y))
+      {
+        outfile
+          <<setiosflags(ios_base::scientific)
+          <<setprecision(16)
+          <<setw(26)<<Region._PtList[i]._x<<" "
+          <<setw(26)<<-Region._PtList[i]._eEx<<" "
+          <<setw(26)<<Region._PtList[i]._eEpsilon<<" "
+          <<setw(26)<<Region._PtList[i]._eKappa<<" "
+          <<setw(26)<<Region._PtList[i]._ePhi<<" "
+          <<setw(26)<<Region._PtList[i]._geEpsilonx<<" "
+          <<setw(26)<<Region._PtList[i]._geEpsilony<<" "
+          
+          //  <<setw(26)<<ErExact<<" "
+          <<endl;
       }
     }
 

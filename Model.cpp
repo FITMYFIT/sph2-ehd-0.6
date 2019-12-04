@@ -347,7 +347,119 @@ void CModel::EHDIsoCondCylinder (CRegion & Region)
 void CModel::EHDDrop (CRegion & Region)
 {
   unsigned int N=64;//the particle number in x and y directions
+  // N=128;
+ N=256;
+ // N=512;
+ unsigned int Nx=N;
+ unsigned int Ny=N;
+ Region._ControlSPH._CellNumx=Region._ControlSPH._CellNumy=N;//the box number, specified here, the value in .k file will not be used
+
+ double xlb=-1;//left bottom corner
+ double ylb=-1;
+ double xru=1;//right upper corner
+ double yru=1;
+
+ double psize=(xru-xlb)/(N);// particle size
+
+ double xmin=xlb-psize;
+ double ymin=ylb-psize;
+
+ // Region._PtList.clear();
+ Region._PtList.clear();
+ Region._PtList.resize((Ny+3)*(Nx+3));
+
+ double r2;
+ double R0=0.1;
+ CBasePt * BasePtPtr;
+  
+ for(unsigned int i=0;i!=Ny+3;++i)
+     {
+       for(unsigned int j=0;j!=Nx+3;++j)
+         {
+           BasePtPtr=&Region._PtList[i*(Nx+3)+j];
+           BasePtPtr->_ID=i*(Nx+3)+j+1;
+
+           BasePtPtr->_x=xmin+j*psize;
+           BasePtPtr->_y=ymin+i*psize;
+
+           if(i==0||i==Ny+2||j==0||j==Nx+2)//the outer layer, end dummy pt
+             //if(i==0||i==Ny+2)//the outer layer, ehd dummy pt
+             {
+               BasePtPtr->_PID=4;
+               BasePtPtr->_Type=enEHDDumPt;
+               BasePtPtr->_eRho=0.0;
+             }
+
+           else if(i==1||i==Ny+1||j==1||j==Nx+1)
+             // else if(i==1||i==Ny+1)
+             {
+               BasePtPtr->_PID=3;
+               BasePtPtr->_Type=enEHDBndPt;
+               BasePtPtr->_eRho=0.0;
+             }
+           else
+             {
+               BasePtPtr->_Type=enSPHPt;
+               if(pow(BasePtPtr->_x,2)+pow(BasePtPtr->_y,2)<=R0*R0)
+                 //if(fabs(BasePtPtr->_x)<=R0&&fabs(BasePtPtr->_y)<=R0)
+                 {
+                   BasePtPtr->_PID=1;
+                   BasePtPtr->_eRho=0.0;
+                 }
+               else
+                 {
+                   BasePtPtr->_PID=2;
+                   BasePtPtr->_eRho=0;
+                 }            
+             }
+       
+           BasePtPtr->_Volume=psize*psize;
+
+           BasePtPtr->_u=0.0;
+           BasePtPtr->_v=0.0;
+
+           BasePtPtr->_rho=1.0;
+           BasePtPtr->_rho0=1.0;
+           BasePtPtr->_m=BasePtPtr->_rho0*BasePtPtr->_Volume;
+           BasePtPtr->_h=Region._PartList[BasePtPtr->_PID-1]._HdivDp*psize;
+           BasePtPtr->_r=2.0*BasePtPtr->_h;
+
+           BasePtPtr->_C0=Region._PartList[BasePtPtr->_PID-1]._C0;
+
+           BasePtPtr->_Cs=Region._ControlSPH._Cs;
+
+           BasePtPtr->_p=0.0;
+           BasePtPtr->_Iflag=0;
+
+           //ehd concerned variables
+           BasePtPtr->_eEpsilon=0.0;
+           BasePtPtr->_eEx=0.0;
+           BasePtPtr->_eEy=0.0;
+           //BasePtPtr->_eRho=0.0;
+
+           if(Region._ControlSPH._SPHST==1)
+             {
+               BasePtPtr->_H=Region._PartList[BasePtPtr->_PID-1]._STHvsh*BasePtPtr->_h;
+               BasePtPtr->_rr=2*BasePtPtr->_H;
+             }
+
+
+           double Einf=1.0;//4.3 step 1 ,test for static case
+           if(BasePtPtr->_PID!=1)
+             BasePtPtr->_ePhi=Einf*BasePtPtr->_x;
+
+         }
+     }
+
+
+}
+
+void CModel::EHDDrop2 (CRegion & Region)//input model from truegrid model
+{
+  unsigned int N=64;//the particle number in x and y directions
   N=128;
+  // N=256;
+  // N=512;
   unsigned int Nx=N;
   unsigned int Ny=N;
   Region._ControlSPH._CellNumx=Region._ControlSPH._CellNumy=N;//the box number, specified here, the value in .k file will not be used
@@ -363,82 +475,26 @@ void CModel::EHDDrop (CRegion & Region)
   double ymin=ylb-psize;
 
   // Region._PtList.clear();
-  Region._PtList.resize((Ny+3)*(Nx+1));
-
+ 
   double r2;
   double R0=0.1;
   CBasePt * BasePtPtr;
   
-  for(unsigned int i=0;i!=Ny+3;++i)
+  for(unsigned int i=0;i!=Region._PtList.size();++i)
     {
-      for(unsigned int j=0;j!=Nx+1;++j)
-        {
-          BasePtPtr=&Region._PtList[i*(Nx+1)+j];
-          BasePtPtr->_ID=i*(Nx+1)+j+1;
+      BasePtPtr=&Region._PtList[i];
+      
+      //ehd concerned variables
+      BasePtPtr->_eEpsilon=0.0;
+      BasePtPtr->_eEx=0.0;
+      BasePtPtr->_eEy=0.0;
+      //BasePtPtr->_eRho=0.0;
 
-          BasePtPtr->_x=xmin+j*psize;
-          BasePtPtr->_y=ymin+i*psize;
+      double Einf=1.0;//4.3 step 1 ,test for static case
+      if(BasePtPtr->_PID!=1)
+        BasePtPtr->_ePhi=Einf*BasePtPtr->_x;
 
-          //if(i==0||i==Ny+2||j==0||j==Nx+2)//the outer layer, end dummy pt
-          if(i==0||i==Ny+2)//the outer layer, ehd dummy pt
-            {
-              BasePtPtr->_PID=4;
-              BasePtPtr->_Type=enEHDDumPt;
-              BasePtPtr->_eRho=0.0;
-            }
-
-          // else if(i==1||i==Ny+1||j==1||j==Nx+1)
-          else if(i==1||i==Ny+1)
-            {
-              BasePtPtr->_PID=3;
-              BasePtPtr->_Type=enEHDBndPt;
-              BasePtPtr->_eRho=0.0;
-            }
-          else
-            {
-              BasePtPtr->_Type=enSPHPt;
-               if(pow(BasePtPtr->_x,2)+pow(BasePtPtr->_y,2)<=R0*R0)
-                 //if(fabs(BasePtPtr->_x)<=R0&&fabs(BasePtPtr->_y)<=R0)
-                 {
-                   BasePtPtr->_PID=1;
-                   BasePtPtr->_eRho=0.0;
-                 }
-              else
-                {
-                  BasePtPtr->_PID=2;
-                  BasePtPtr->_eRho=0;
-                }            
-            }
-       
-          BasePtPtr->_Volume=psize*psize;
-
-          BasePtPtr->_u=0.0;
-          BasePtPtr->_v=0.0;
-
-          BasePtPtr->_rho=1.0;
-          BasePtPtr->_rho0=1.0;
-          BasePtPtr->_m=BasePtPtr->_rho0*BasePtPtr->_Volume;
-          BasePtPtr->_h=Region._PartList[BasePtPtr->_PID-1]._HdivDp*psize;
-          BasePtPtr->_r=2.0*BasePtPtr->_h;
-
-          BasePtPtr->_C0=Region._PartList[BasePtPtr->_PID-1]._C0;
-
-          BasePtPtr->_Cs=Region._ControlSPH._Cs;
-
-          BasePtPtr->_p=0.0;
-          BasePtPtr->_Iflag=0;
-
-          //ehd concerned variables
-          BasePtPtr->_eEpsilon=0.0;
-          BasePtPtr->_eEx=0.0;
-          BasePtPtr->_eEy=0.0;
-          //BasePtPtr->_eRho=0.0;
-
-          double Einf=1.0;//4.3 step 1 ,test for static case
-          if(BasePtPtr->_PID!=1)
-            BasePtPtr->_ePhi=Einf*BasePtPtr->_y;
-
-        }
+  
     }
 
 

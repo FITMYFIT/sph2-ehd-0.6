@@ -65,28 +65,28 @@ void CGetKnlList::GetKnlList(CRegion &Region)
 		}		
 	}
 
-	//if(Region._ControlSPH._SPHST==1)
-	//{
-	//	icount=0;
-	//	Region._KnlList2.resize(Region._PtPairList2.size());
+	if(Region._ControlSPH._SPHST==1)
+	{
+		icount=0;
+		Region._KnlList2.resize(Region._PtPairList2.size());
 
-	//	for(size_t i=0;i<Region._PtPairList2.size();i++)
-	//	{
-	//		if(Region._PtPairList2[i]._Type==enSPHPtPair||Region._PtPairList2[i]._Type==enSPHNULLPtPair||Region._PtPairList2[i]._Type==enSPHBndPtPair)
-	//		{
-	//			PtiPtr=(CSPHPt*)Region._PtPairList2[i]._PtiPtr;
-	//			PtjPtr=(CSPHPt*)Region._PtPairList2[i]._PtjPtr;
+		for(size_t i=0;i<Region._PtPairList2.size();i++)
+		{
+			if(Region._PtPairList2[i]._Type==enSPHPtPair||Region._PtPairList2[i]._Type==enSPHNULLPtPair||Region._PtPairList2[i]._Type==enSPHBndPtPair)
+			{
+				PtiPtr=(CSPHPt*)Region._PtPairList2[i]._PtiPtr;
+				PtjPtr=(CSPHPt*)Region._PtPairList2[i]._PtjPtr;
 
-	//			x=PtiPtr->_x-PtjPtr->_x;
-	//			y=PtiPtr->_y-PtjPtr->_y;
-	//			H=0.5*(PtiPtr->_H+PtjPtr->_H);
-	//			distance2=Region._PtPairList2[i]._driac2;
+				x=PtiPtr->_x-PtjPtr->_x;
+				y=PtiPtr->_y-PtjPtr->_y;
+				H=0.5*(PtiPtr->_H+PtjPtr->_H);
+				distance2=Region._PtPairList2[i]._driac2;
 
-	//			GetW(x,y,H,distance2,Region._KnlList2[icount]._W,Region._KnlList2[icount]._Wx,Region._KnlList2[icount]._Wy,Region._KnlList2[icount]._Ww);
-	//			icount++;
-	//		}		
-	//	}	
-	//}
+				GetW(x,y,H,distance2,Region._KnlList2[icount]._W,Region._KnlList2[icount]._Wx,Region._KnlList2[icount]._Wy,Region._KnlList2[icount]._Ww);
+				icount++;
+			}		
+		}	
+	}
 }
 
 void CGetKnlList::GetW(double x,double y,double h,double distance2,double & W,double & Wx,double & Wy,double & Ww)

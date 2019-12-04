@@ -16,7 +16,6 @@ void CUpdatePosition::LeapFrogUpdate(CRegion & Region, double DeltaT,double Delt
 	CBasePt * BasePtPtr;
 	double DeltaTHf;//DeltT1*0.5
 	double DeltaTAver;//(DeltT+DeltT1)*0.5
-	unsigned int i,j;
 	unsigned int ID;
 
 	double AverRho;
@@ -35,7 +34,7 @@ void CUpdatePosition::LeapFrogUpdate(CRegion & Region, double DeltaT,double Delt
 
 	if(TimeSteps==Region._ControlSPH._StartStep)
     {
-      for (i=0;i<Region._PtList.size();i++)
+      for (unsigned int i=0;i<Region._PtList.size();i++)
         {
           BasePtPtr=&Region._PtList[i];
           if(BasePtPtr->_Type==enSPHPt)//坐标留待XSPH法计算出速度后再更新
@@ -63,15 +62,15 @@ void CUpdatePosition::LeapFrogUpdate(CRegion & Region, double DeltaT,double Delt
       if(Region._ControlSPH._XSPHEpsilon!=0)//求XSPH法更新坐标的修正因子，XSPH只用于SPH粒子对之间,刘虎硕士论文，equ.(2.52)
         {
 
-          for(j=0;j<Region._PtList.size();j++)//XSPH-0 XSPH法修正因子置0
+          for(unsigned int j=0;j<Region._PtList.size();j++)//XSPH-0 XSPH法修正因子置0
             {
               Region._PtList[j]._uXSPHCoef=0;
               Region._PtList[j]._vXSPHCoef=0;
             }
 
-          for(j=0;j<Region._PtPairList.size();j++)//XSPH-1 求各粒子的XSPH修正因子
+          for(unsigned int j=0;j<Region._PtPairList.size();j++)//XSPH-1 求各粒子的XSPH修正因子
             {
-              if(Region._PtPairList[i]._Type==enSPHPtPair||Region._PtPairList[i]._Type==enSPHNULLPtPair)
+              if(Region._PtPairList[j]._Type==enSPHPtPair||Region._PtPairList[j]._Type==enSPHNULLPtPair)
                 {
                   PtiPtr=Region._PtPairList[j]._PtiPtr;
                   PtjPtr=Region._PtPairList[j]._PtjPtr;
@@ -96,7 +95,7 @@ void CUpdatePosition::LeapFrogUpdate(CRegion & Region, double DeltaT,double Delt
 
           XSPHEpsilon=Region._ControlSPH._XSPHEpsilon;
 
-          for(j=0;j<Region._PtList.size();j++)//XSPH-2 XSPH更新坐标
+          for(unsigned int j=0;j<Region._PtList.size();j++)//XSPH-2 XSPH更新坐标
             {
               BasePtPtr=&Region._PtList[j];
 
@@ -110,7 +109,7 @@ void CUpdatePosition::LeapFrogUpdate(CRegion & Region, double DeltaT,double Delt
 
       else                                            //不用XSPH法更新enSectionSPH部分的粒子坐标
         {
-          for(j=0;j<Region._PtList.size();j++)//非XSPH法更新坐标
+          for(unsigned int j=0;j<Region._PtList.size();j++)//非XSPH法更新坐标
             {
               BasePtPtr=&Region._PtList[j];
 
@@ -125,7 +124,7 @@ void CUpdatePosition::LeapFrogUpdate(CRegion & Region, double DeltaT,double Delt
 
 	else //非第一个时间步
     {
-      for (i=0;i<Region._PtList.size();i++)
+      for (unsigned int i=0;i<Region._PtList.size();i++)
         {
           BasePtPtr=&Region._PtList[i];
 
@@ -155,15 +154,15 @@ void CUpdatePosition::LeapFrogUpdate(CRegion & Region, double DeltaT,double Delt
       if(Region._ControlSPH._XSPHEpsilon!=0)//求XSPH法更新坐标的修正因子，XSPH只用于SPH粒子对及SPH-NULL粒子对之间,刘虎硕士论文，equ.(2.52)
         {
 
-          for(j=0;j<Region._PtList.size();j++)//XSPH-0 XSPH法修正因子置0
+          for(unsigned int j=0;j<Region._PtList.size();j++)//XSPH-0 XSPH法修正因子置0
             {
               Region._PtList[j]._uXSPHCoef=0;
               Region._PtList[j]._vXSPHCoef=0;
             }
 
-          for(j=0;j<Region._PtPairList.size();j++)//XSPH-1 求各粒子的XSPH修正因子
+          for(unsigned int j=0;j<Region._PtPairList.size();j++)//XSPH-1 求各粒子的XSPH修正因子
             {
-              if(Region._PtPairList[i]._Type==enSPHPtPair||Region._PtPairList[i]._Type==enSPHNULLPtPair)
+              if(Region._PtPairList[j]._Type==enSPHPtPair||Region._PtPairList[j]._Type==enSPHNULLPtPair)
                 {
                   PtiPtr=Region._PtPairList[j]._PtiPtr;
                   PtjPtr=Region._PtPairList[j]._PtjPtr;
@@ -188,7 +187,7 @@ void CUpdatePosition::LeapFrogUpdate(CRegion & Region, double DeltaT,double Delt
 
           XSPHEpsilon=Region._ControlSPH._XSPHEpsilon;
 
-          for(j=0;j<Region._PtList.size();j++)//XSPH-2 XSPH更新坐标
+          for(unsigned int j=0;j<Region._PtList.size();j++)//XSPH-2 XSPH更新坐标
             {
               BasePtPtr=&Region._PtList[j];
 
@@ -206,7 +205,7 @@ void CUpdatePosition::LeapFrogUpdate(CRegion & Region, double DeltaT,double Delt
         {
           //1.找到最大速度
           Maxv=0.0;
-          for (i=0;i!=Region._CalList.size();++i)
+          for (unsigned int i=0;i!=Region._CalList.size();++i)
             {
               ID=Region._CalList[i];
 
@@ -220,7 +219,7 @@ void CUpdatePosition::LeapFrogUpdate(CRegion & Region, double DeltaT,double Delt
 
           //2.计算截止距离（cutoff distance）
           //r0=sum(rij/N)
-          for (i=0;i!=Region._PtPairList.size();++i)
+          for (unsigned int i=0;i!=Region._PtPairList.size();++i)
             {
               PtiPtr=Region._PtPairList[i]._PtiPtr;
               PtjPtr=Region._PtPairList[i]._PtjPtr;
@@ -237,7 +236,7 @@ void CUpdatePosition::LeapFrogUpdate(CRegion & Region, double DeltaT,double Delt
 
           //3.计算修正系数
           PtShftBeta=Region._ControlSPH._PtShftBeta;
-          for (i=0;i!=Region._PtPairList.size();++i)
+          for (unsigned int i=0;i!=Region._PtPairList.size();++i)
             {
               PtiPtr=Region._PtPairList[i]._PtiPtr;
               PtjPtr=Region._PtPairList[i]._PtjPtr;
@@ -256,7 +255,7 @@ void CUpdatePosition::LeapFrogUpdate(CRegion & Region, double DeltaT,double Delt
                 }
             }
 
-          for(j=0;j<Region._PtList.size();j++)//Particle Shift更新坐标
+          for(unsigned int j=0;j<Region._PtList.size();j++)//Particle Shift更新坐标
             {
               BasePtPtr=&Region._PtList[j];
 
@@ -273,7 +272,7 @@ void CUpdatePosition::LeapFrogUpdate(CRegion & Region, double DeltaT,double Delt
         {
           //1.找到最大速度
           Maxv=0.0;
-          for (i=0;i!=Region._CalList.size();++i)
+          for (unsigned int i=0;i!=Region._CalList.size();++i)
             {
               ID=Region._CalList[i];
 
@@ -287,7 +286,7 @@ void CUpdatePosition::LeapFrogUpdate(CRegion & Region, double DeltaT,double Delt
 
           //2.计算截止距离（cutoff distance）
           //r0=sum(rij/N)
-          for (i=0;i!=Region._PtPairList.size();++i)
+          for (unsigned int i=0;i!=Region._PtPairList.size();++i)
             {
               PtiPtr=Region._PtPairList[i]._PtiPtr;
               PtjPtr=Region._PtPairList[i]._PtjPtr;
@@ -304,7 +303,7 @@ void CUpdatePosition::LeapFrogUpdate(CRegion & Region, double DeltaT,double Delt
 
           //3.计算修正系数
           PtShftBeta=Region._ControlSPH._PtShftBeta;
-          for (i=0;i!=Region._PtPairList.size();++i)
+          for (unsigned int i=0;i!=Region._PtPairList.size();++i)
             {
               PtiPtr=Region._PtPairList[i]._PtiPtr;
               PtjPtr=Region._PtPairList[i]._PtjPtr;
@@ -323,7 +322,7 @@ void CUpdatePosition::LeapFrogUpdate(CRegion & Region, double DeltaT,double Delt
                 }
             }
 
-          for(j=0;j<Region._PtList.size();j++)//Particle Shift更新坐标
+          for(unsigned int j=0;j<Region._PtList.size();j++)//Particle Shift更新坐标
             {
               BasePtPtr=&Region._PtList[j];
 
@@ -337,7 +336,7 @@ void CUpdatePosition::LeapFrogUpdate(CRegion & Region, double DeltaT,double Delt
 
       else                                            //不用XSPH法更新enSectionSPH部分的粒子坐标
         {
-          for(j=0;j<Region._PtList.size();j++)//非XSPH法更新坐标
+          for(unsigned int j=0;j<Region._PtList.size();j++)//非XSPH法更新坐标
             {
               BasePtPtr=&Region._PtList[j];
 
@@ -350,7 +349,7 @@ void CUpdatePosition::LeapFrogUpdate(CRegion & Region, double DeltaT,double Delt
         }
     }
 
-	for (i=0;i<Region._PtList.size();i++)
+	for (unsigned int i=0;i<Region._PtList.size();i++)
     {
       BasePtPtr=&Region._PtList[i];
       if(BasePtPtr->_Type==enSPHPt)
@@ -390,7 +389,7 @@ void CUpdatePosition::LeapFrogUpdate(CRegion & Region, double DeltaT,double Delt
       MAXX=Region._ControlSPH._PerdBndMaxX;
       MINX=Region._ControlSPH._PerdBndMinX;
 
-      for (i=0;i!=Region._PtList.size();++i)
+      for (unsigned int i=0;i!=Region._PtList.size();++i)
         {
           if (Region._PtList[i]._x>=MAXX+dp)
             {

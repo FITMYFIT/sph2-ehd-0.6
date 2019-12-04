@@ -873,6 +873,7 @@ void CSPHEHD::Solve3(CRegion & Region, unsigned int Timesteps)
   double DeltaT;
   DeltaT=Region._ControlSPH._DeltaT;
 
+
   for(unsigned int i=0;i<Region._PtPairList.size();i++)
     {
       if(Region._PtPairList[i]._Type==enSPHPtPair
@@ -889,20 +890,21 @@ void CSPHEHD::Solve3(CRegion & Region, unsigned int Timesteps)
               IDi=PtiPtr->_ID2;
               IDj=PtjPtr->_ID2;
 
-              // epsiloni=Region._PartList[PtiPtr->_PID-1]._eEpsilon;//epsilon not smoothed
-              // epsilonj=Region._PartList[PtjPtr->_PID-1]._eEpsilon;
+              epsiloni=Region._PartList[PtiPtr->_PID-1]._eEpsilon;//epsilon not smoothed
+              epsilonj=Region._PartList[PtjPtr->_PID-1]._eEpsilon;
 
-              // kappai=Region._PartList[PtiPtr->_PID-1]._eKappa;//kappa not smoothed
-              // kappaj=Region._PartList[PtjPtr->_PID-1]._eKappa;
+              kappai=Region._PartList[PtiPtr->_PID-1]._eKappa;//kappa not smoothed
+              kappaj=Region._PartList[PtjPtr->_PID-1]._eKappa;
 
-              epsiloni=PtiPtr->_eEpsilon;
-              epsilonj=PtjPtr->_eEpsilon;
+              // epsiloni=PtiPtr->_eEpsilon;
+              // epsilonj=PtjPtr->_eEpsilon;
 
-              kappai=PtiPtr->_eKappa;
-              kappaj=PtjPtr->_eKappa;
+              // kappai=PtiPtr->_eKappa;
+              // kappaj=PtjPtr->_eKappa;
 
-              // norm=(kappai*DeltaT+epsiloni+kappaj*DeltaT+epsilonj)*KnlPtr->_Ww;
+              //norm=(kappai*DeltaT+epsiloni+kappaj*DeltaT+epsilonj)*KnlPtr->_Ww;
               norm=4*(kappai*DeltaT+epsiloni)*(kappaj*DeltaT+epsilonj)/(kappai*DeltaT+epsiloni+kappaj*DeltaT+epsilonj)*KnlPtr->_Ww;
+
               //norm=2*(kappai*DeltaT+epsiloni)*KnlPtr->_Ww;//test for jump between two parts
               
               Q_AddVal(&LasA, IDi, 0, PtjPtr->_mrho*norm);//the first one in row is i i
@@ -916,7 +918,7 @@ void CSPHEHD::Solve3(CRegion & Region, unsigned int Timesteps)
                   icount[IDj-1]++;
 
                   //norm=2*(kappaj*DeltaT+epsilonj)*KnlPtr->_Ww;//test for jump between two parts
-                  
+                 
                   Q_AddVal(&LasA, IDj, 0, PtiPtr->_mrho*norm);//the first one in row j-j
                   Q_SetEntry(&LasA, IDj, icount[IDj-1]-1, IDi, -PtiPtr->_mrho*norm);
 
@@ -981,8 +983,8 @@ void CSPHEHD::Solve3(CRegion & Region, unsigned int Timesteps)
               kappai=PtiPtr->_eKappa;
               kappaj=PtjPtr->_eKappa;
 
-              // kappai=Region._PartList[PtiPtr->_PID-1]._eKappa;
-              // kappaj=Region._PartList[PtjPtr->_PID-1]._eKappa;
+              kappai=Region._PartList[PtiPtr->_PID-1]._eKappa;
+              kappaj=Region._PartList[PtjPtr->_PID-1]._eKappa;
               
               //norm=(kappai+kappaj)*DeltaT*(PtiPtr->_ePhi-PtjPtr->_ePhi)*KnlPtr->_Ww;              
               //norm=2*kappai*DeltaT*(PtiPtr->_ePhi-PtjPtr->_ePhi)*KnlPtr->_Ww;
@@ -1077,6 +1079,13 @@ void CSPHEHD::Solve3(CRegion & Region, unsigned int Timesteps)
   //use equ 11, since the derivative of E is unaccruate and formulation of Lopez 2011 equ32 produced poor results
   //Fe=rhoe*E-1/2*E^2*grad(epsilon)
   //grad(epsilon)i=sum(mj/rhoj*(epsilonj-epsiloni)*grad(W))
+  for(unsigned int i=0;i!=Region._PtList.size();++i)
+    {
+      BasePtPtr=&Region._PtList[i];
+
+      BasePtPtr->_geEpsilonx=0.0;
+      BasePtPtr->_geEpsilony=0.0;      
+    }
   for(unsigned int i=0;i!=Region._PtPairList.size();++i)
     {
       if(Region._PtPairList[i]._Type==enSPHPtPair
@@ -1090,15 +1099,19 @@ void CSPHEHD::Solve3(CRegion & Region, unsigned int Timesteps)
 
           if(PtiPtr!=PtjPtr)
             {
-              epsiloni=PtiPtr->_eEpsilon;
-              epsilonj=PtjPtr->_eEpsilon;
+              // //use epsilon not smoothed
+              epsiloni=Region._PartList[PtiPtr->_PID-1]._eEpsilon;
+              epsilonj=Region._PartList[PtjPtr->_PID-1]._eEpsilon;
+              
+              // epsiloni=PtiPtr->_eEpsilon;
+              // epsilonj=PtjPtr->_eEpsilon;
               
               normx=(epsilonj-epsiloni)*KnlPtr->_Wx;
               normy=(epsilonj-epsiloni)*KnlPtr->_Wy;
 
-              // //use epsilon not smoothed
-              // normx=(Region._PartList[PtjPtr->_PID-1]._eEpsilon-Region._PartList[PtiPtr->_PID-1]._eEpsilon)*KnlPtr->_Wx;
-              // normy=(Region._PartList[PtjPtr->_PID-1]._eEpsilon-Region._PartList[PtiPtr->_PID-1]._eEpsilon)*KnlPtr->_Wy;
+
+              PtiPtr->_geEpsilonx+=PtjPtr->_mrho*normx;//temp, for debug, 2019.11.30
+              PtiPtr->_geEpsilony+=PtjPtr->_mrho*normy;
               
               PtiPtr->_Fex+=PtjPtr->_mrho*normx;
               PtiPtr->_Fey+=PtjPtr->_mrho*normy;
@@ -1134,8 +1147,8 @@ void CSPHEHD::Solve3(CRegion & Region, unsigned int Timesteps)
   if(Timesteps==0||((Timesteps+1)%Region._ControlSPH._OutputSteps)==0)
     {
       //kfiletemp.outTecplotEHDPLANNER(Region, Timesteps+1,"xx"+Region._ControlSPH._InfileName);
-       kfiletemp.outTecplotEHDDrop(Region, Timesteps+1,"xx"+Region._ControlSPH._InfileName);
-       // kfiletemp.outTecplotIsoCondCylinder(Region, Timesteps+1,"xx"+Region._ControlSPH._InfileName);
+      kfiletemp.outTecplotEHDDrop(Region, Timesteps+1,"xx"+Region._ControlSPH._InfileName);
+      // kfiletemp.outTecplotIsoCondCylinder(Region, Timesteps+1,"xx"+Region._ControlSPH._InfileName);
       //kfiletemp.outTecplotEHDBulkRelax(Region, Timesteps+1,"xx"+Region._ControlSPH._InfileName);
     }
 

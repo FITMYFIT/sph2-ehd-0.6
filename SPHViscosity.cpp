@@ -135,7 +135,11 @@ void CSPHViscosity::Solve(CRegion &Region,unsigned int TimeSteps)
 		}
 
 
-		if(Region._PtPairList[i]._Type==enSPHNULLPtPair||Region._PtPairList[i]._Type==enSPHBndPtPair||Region._PtPairList[i]._Type==enSPHDumPtPair)
+		if(Region._PtPairList[i]._Type==enSPHNULLPtPair
+       ||Region._PtPairList[i]._Type==enSPHBndPtPair
+       ||Region._PtPairList[i]._Type==enSPHDumPtPair
+       ||Region._PtPairList[i]._Type==enSPHEHDBndPtPair
+       ||Region._PtPairList[i]._Type==enSPHEHDDumPtPair)
 		{
 			IDi=PtiPtr->_ID2;
 			IDj=PtjPtr->_ID2;
@@ -154,44 +158,44 @@ void CSPHViscosity::Solve(CRegion &Region,unsigned int TimeSteps)
       yij=Region._PtPairList[i]._yij;
       
       if(Region._ControlSPH._RunMod==1)//显式算法
-                {
-                  uij=PtiPtr->_u-PtjPtr->_u;
-                  vij=PtiPtr->_v-PtjPtr->_v;
+        {
+          uij=PtiPtr->_u-PtjPtr->_u;
+          vij=PtiPtr->_v-PtjPtr->_v;
 
-                  //particle i 粘性项
-                  visnorm=mj*(etai+etaj)/(rhoi*rhoj)*KnlPtr->_Ww;//Morris
-                  ////visnorm=4*mj*(etai+etaj)/(rhoi*rhoi+rhoj*rhoj)*KnlPtr->_Ww;//X J Fan
-                  ////visnorm=4*mj/(rhoi*rhoj)*(etai*etaj)/(etai+etaj)*KnlPtr->_Ww;//P W Cleary热传导类似
-                  ////visnorm=mj*(etai+etaj)/(rhoi*rhoj)/(xij*xij+yij*yij+zij*zij)*(xij*KnlPtr->_Wxci+yij*KnlPtr->_Wyci+zij*KnlPtr->_Wzci);//SPH-4 P134 式4
+          //particle i 粘性项
+          visnorm=mj*(etai+etaj)/(rhoi*rhoj)*KnlPtr->_Ww;//Morris
+          ////visnorm=4*mj*(etai+etaj)/(rhoi*rhoi+rhoj*rhoj)*KnlPtr->_Ww;//X J Fan
+          ////visnorm=4*mj/(rhoi*rhoj)*(etai*etaj)/(etai+etaj)*KnlPtr->_Ww;//P W Cleary热传导类似
+          ////visnorm=mj*(etai+etaj)/(rhoi*rhoj)/(xij*xij+yij*yij+zij*zij)*(xij*KnlPtr->_Wxci+yij*KnlPtr->_Wyci+zij*KnlPtr->_Wzci);//SPH-4 P134 式4
 
-                  PtiPtr->_du+=uij*visnorm;
-                  PtiPtr->_dv+=vij*visnorm;
-                }
+          PtiPtr->_du+=uij*visnorm;
+          PtiPtr->_dv+=vij*visnorm;
+        }
 
-              else//隐式算法
-                {
-                  CMatrix TempM;
+      else//隐式算法
+        {
+          CMatrix TempM;
 
-                  //particle i 粘性项
-                  //----------------------------------------------------
-                  visnorm=mj*(etai+etaj)/(rhoi*rhoj)*KnlPtr->_Ww;//Morris
-                  //visnorm=4*mj*(etai+etaj)/(rhoi*rhoi+rhoj*rhoj)*KnlPtr->_Ww;//X J Fan
-                  //visnorm=4*mj/(rhoi*rhoj)*(etai*etaj)/(etai+etaj)*KnlPtr->_Ww;//P W Cleary热传导类似
+          //particle i 粘性项
+          //----------------------------------------------------
+          visnorm=mj*(etai+etaj)/(rhoi*rhoj)*KnlPtr->_Ww;//Morris
+          //visnorm=4*mj*(etai+etaj)/(rhoi*rhoi+rhoj*rhoj)*KnlPtr->_Ww;//X J Fan
+          //visnorm=4*mj/(rhoi*rhoj)*(etai*etaj)/(etai+etaj)*KnlPtr->_Ww;//P W Cleary热传导类似
 
-                  ////两粒子光滑长度不一致时的计算式R Vacondio Equ.7(略有改动)
-                  //rhoav=0.5*(rhoi+rhoj);
-                  //visnorm=mj*(etai+etaj)/(rhoav*rhoav)*0.5*(KnlPtr->_Ww+KnlPtr->_Wwj);
+          ////两粒子光滑长度不一致时的计算式R Vacondio Equ.7(略有改动)
+          //rhoav=0.5*(rhoi+rhoj);
+          //visnorm=mj*(etai+etaj)/(rhoav*rhoav)*0.5*(KnlPtr->_Ww+KnlPtr->_Wwj);
 
 
-                  //_GetKnlListV.GetCrctKnlGrad(Region,PtiPtr,KnlPtr,wxc,wyc,wzc);//求出修正核函数
-                  //visnorm=mj*(etai+etaj)/(rhoi*rhoj)/(xij*xij+yij*yij+zij*zij)*(xij*wxc+yij*wyc+zij*wzc);//SPH-4 P134 式4
+          //_GetKnlListV.GetCrctKnlGrad(Region,PtiPtr,KnlPtr,wxc,wyc,wzc);//求出修正核函数
+          //visnorm=mj*(etai+etaj)/(rhoi*rhoj)/(xij*xij+yij*yij+zij*zij)*(xij*wxc+yij*wyc+zij*wzc);//SPH-4 P134 式4
 
-                  Region._SPHAm[IDi-1]._Ele-=visnorm;
+          Region._SPHAm[IDi-1]._Ele-=visnorm;
 
-                  Region._SPHbu[IDi-1]-=PtjPtr->_u*visnorm;
-                  Region._SPHbu[IDi-1]-=PtjPtr->_v*visnorm;
-                  //----------------------------------------------------
-                }
+          Region._SPHbu[IDi-1]-=PtjPtr->_u*visnorm;
+          Region._SPHbu[IDi-1]-=PtjPtr->_v*visnorm;
+          //----------------------------------------------------
+        }
 		}
 	}
 }

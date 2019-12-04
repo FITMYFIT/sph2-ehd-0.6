@@ -37,9 +37,10 @@ public:
 
   void EHDIsoCondCylinder(CRegion & Region);//Lopez 2011 4.2.2 problem
 
-  void EHDDrop(CRegion & Region);//lopez 2011 4.3 drop 
+  void EHDDrop(CRegion & Region);//lopez 2011 4.3 drop
+  void EHDDrop2(CRegion & Region);//lopez 2011 4.3 drop , input model from truegrid model, set some variables here
 
-  private:
+private:
 
 };
 

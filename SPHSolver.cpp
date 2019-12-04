@@ -33,9 +33,9 @@ void CSPHSolver::Input()
   //_Model.EHDPlannar(_Region);//model of ehd plannar, lopez 2011 4.1
   // _Model.EHDBulkRelax(_Region);//model of ehd bulk relaxation, lopez 2011 4.2.1
   //_Model.EHDIsoCondCylinder(_Region);//model of ehd isolated conduction cylinder
-   _Model.EHDDrop(_Region);//model of ehd droplet, lopezf 2011 4.3
+  _Model.EHDDrop(_Region);//model of ehd droplet, lopezf 2011 4.3
 
-   // _CalBndNorm.Solve(_Region);//用类似CSF模型的方法计算边界粒子的法向
+  // _CalBndNorm.Solve(_Region);//用类似CSF模型的方法计算边界粒子的法向
 
 	//_KFile.InputMesh(_Region);
 
@@ -55,7 +55,8 @@ void CSPHSolver::Input()
 
 void CSPHSolver::Output()
 {
-	_KFile.OutTecplot(_Region,_TimeSteps);
+  //	_KFile.OutTecplot(_Region,_TimeSteps);
+  _KFile.OutTecplot2(_Region,_TimeSteps,_Region._ControlSPH._InfileName);
 }
 
 void CSPHSolver::Run()
@@ -117,7 +118,7 @@ void CSPHSolver::Run()
 
     cout<<"3.start calculating continuity equation."<<endl;
 
-    //_ContinuityEqu.Solve(_Region,_TimeSteps);//如果需要，需再添加人工耗散等部分
+    // _ContinuityEqu.Solve(_Region,_TimeSteps);//如果需要，需再添加人工耗散等部分
 
     cout<<"3.continuity equation has been solved."<<endl;
 
@@ -127,8 +128,8 @@ void CSPHSolver::Run()
 
     cout<<"4.equation of station has been solved."<<endl;
 
-    //插值得到Dummy粒子的压力并计算出其密度
-    // _GetDumProperty.Solve(_Region);
+    //插值得到Dummy, ehd dummy and ehd boundary 粒子的压力并计算出其密度
+    //    _GetDumProperty.Solve(_Region);
 
     cout<<"5.start solving momentum equation."<<endl;
 
@@ -139,10 +140,10 @@ void CSPHSolver::Run()
     cout<<"6.start update the particle position."<<endl;
 
     if(_Region._ControlSPH._RunMod==1)//显式计算时需要LeapFrog
-      {
-        // _UpdatePosition.LeapFrogUpdate(_Region,_DeltaT._DeltaT,_DeltaT._DeltaT1,_TimeSteps);
-      }
-      else//隐式推进粒子坐标
+       {
+         // _UpdatePosition.LeapFrogUpdate(_Region,_DeltaT._DeltaT,_DeltaT._DeltaT1,_TimeSteps);
+       }
+     else//隐式推进粒子坐标
         {
           // _UpdatePosition.ImplicitUpdate(_Region);
         }
@@ -156,7 +157,7 @@ void CSPHSolver::Run()
 
       _EndT=clock();
 
-      cout<<"Run time is :"<<(double)(_EndT-_StartT)/CLOCKS_PER_SEC<<"s"<<endl;
+      cout<<"Run time is: "<<(double)(_EndT-_StartT)/CLOCKS_PER_SEC<<"s"<<endl;
 
       cout<<"----------------------------------------------------------"<<endl;
 
@@ -166,7 +167,7 @@ void CSPHSolver::Run()
         }
 
       //if particles not move, no need to clear particle pair list
-      //_NblSch.Clear(_Region);
+      // _NblSch.Clear(_Region);
 
       // _GetKnlList.ClearKnlList(_Region);
 

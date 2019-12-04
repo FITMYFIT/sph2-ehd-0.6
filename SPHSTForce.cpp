@@ -202,21 +202,21 @@ void CSPHSTForce::Solve(CRegion &Region)
         byy[IDi-1]+=(PtiPtr->_Nny-PtjPtr->_Nny)*normy;
 
         if(PtiPtr!=PtjPtr)
-              {
-                normx=mi/rhoi*KnlPtr->_Wx;
-                normy=mi/rhoi*KnlPtr->_Wy;
+          {
+            normx=mi/rhoi*KnlPtr->_Wx;
+            normy=mi/rhoi*KnlPtr->_Wy;
 
-                PtjPtr->_CSPMAxx-=(PtjPtr->_x-PtiPtr->_x)*normx;
-                PtjPtr->_CSPMAyx-=(PtjPtr->_y-PtiPtr->_y)*normx;
-                PtjPtr->_CSPMAxy-=(PtjPtr->_x-PtiPtr->_x)*normy;
-                PtjPtr->_CSPMAyy-=(PtjPtr->_y-PtiPtr->_y)*normy;
+            PtjPtr->_CSPMAxx-=(PtjPtr->_x-PtiPtr->_x)*normx;
+            PtjPtr->_CSPMAyx-=(PtjPtr->_y-PtiPtr->_y)*normx;
+            PtjPtr->_CSPMAxy-=(PtjPtr->_x-PtiPtr->_x)*normy;
+            PtjPtr->_CSPMAyy-=(PtjPtr->_y-PtiPtr->_y)*normy;
 
-                bxx[IDj-1]-=(PtjPtr->_Nnx-PtiPtr->_Nnx)*normx;
-                bxy[IDj-1]-=(PtjPtr->_Nnx-PtiPtr->_Nnx)*normy;
+            bxx[IDj-1]-=(PtjPtr->_Nnx-PtiPtr->_Nnx)*normx;
+            bxy[IDj-1]-=(PtjPtr->_Nnx-PtiPtr->_Nnx)*normy;
 
-                byx[IDj-1]-=(PtjPtr->_Nny-PtiPtr->_Nny)*normx;
-                byy[IDj-1]-=(PtjPtr->_Nny-PtiPtr->_Nny)*normy;
-              }
+            byx[IDj-1]-=(PtjPtr->_Nny-PtiPtr->_Nny)*normx;
+            byy[IDj-1]-=(PtjPtr->_Nny-PtiPtr->_Nny)*normy;
+          }
 			}
 		}
 	}
