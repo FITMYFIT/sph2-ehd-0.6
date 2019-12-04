@@ -113,12 +113,13 @@ void CGetDumProperty::Solve( CRegion &Region )
 	{
 		PtPtr=&Region._PtList[i];
 
-		if (PtPtr->_Type==enDumPt&&PtPtr->_CSPMCoef!=0)
-		{
-			PtPtr->_p/=PtPtr->_CSPMCoef;
+		if ((PtPtr->_Type==enDumPt||PtPtr->_Type==enEHDBndPt||PtPtr->_Type==enEHDDumPt)
+        &&PtPtr->_CSPMCoef!=0)
+      {
+        PtPtr->_p/=PtPtr->_CSPMCoef;
 
-      PtPtr->_ePhi/=PtPtr->_CSPMCoef;
-		}
+        //PtPtr->_ePhi/=PtPtr->_CSPMCoef;
+      }
 	}
 
 
@@ -129,33 +130,35 @@ void CGetDumProperty::Solve( CRegion &Region )
 	{
 		PtPtr=&Region._PtList[i];
 
-		if (PtPtr->_Type==enDumPt/*&&PtPtr->_PID==1*/)
-		{
-			PtPtr->_u=0.0;
-			PtPtr->_v=0.0;
+    if (PtPtr->_Type==enDumPt||PtPtr->_Type==enEHDBndPt||PtPtr->_Type==enEHDDumPt)
+      {
+        PtPtr->_u=0.0;
+        PtPtr->_v=0.0;
 
-			PtPtr->_CSPMCoef=0.0;
-		}
+        PtPtr->_CSPMCoef=0.0;
+      }
 	}
 
 	//插值得到dummy粒子的速度，XY HU2012 Equ22
 	for (unsigned int i=0;i!=Region._PtPairList.size();++i)
 	{
-		if (Region._PtPairList[i]._Type==enSPHDumPtPair)
-		{
-			PtiPtr=Region._PtPairList[i]._PtiPtr;
-			PtjPtr=Region._PtPairList[i]._PtjPtr;
+    if (Region._PtPairList[i]._Type==enSPHDumPtPair
+        ||Region._PtPairList[i]._Type==enSPHEHDBndPtPair
+        ||Region._PtPairList[i]._Type==enSPHEHDDumPtPair)
+      {
+        PtiPtr=Region._PtPairList[i]._PtiPtr;
+        PtjPtr=Region._PtPairList[i]._PtjPtr;
 
-			KnlPtr=&Region._KnlList[i];
+        KnlPtr=&Region._KnlList[i];
 
-			//if(PtjPtr->_PID==1)
-			{
-				PtjPtr->_CSPMCoef+=KnlPtr->_W;//equ 22 分母
+        //if(PtjPtr->_PID==1)
+        {
+          PtjPtr->_CSPMCoef+=KnlPtr->_W;//equ 22 分母
 
-				PtjPtr->_u+=PtiPtr->_u*KnlPtr->_W;
-				PtjPtr->_v+=PtiPtr->_v*KnlPtr->_W;
-			}
-		}
+          PtjPtr->_u+=PtiPtr->_u*KnlPtr->_W;
+          PtjPtr->_v+=PtiPtr->_v*KnlPtr->_W;
+        }
+        }
 	}
 
 	for (unsigned int i=0;i!=Region._PtList.size();++i)

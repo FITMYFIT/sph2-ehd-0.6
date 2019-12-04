@@ -165,9 +165,10 @@ public:
   double _deRho;//the increasement of the charge density, calculate from charge density continuity equ Lopez 2011 Equ(21)
   double _geEpsilonx;//gradient(epsilon),x direction
   double _geEpsilony;
+  double _gKappax,_gKappay;//gradient(kapppa), for debug,2019.11.30
 
   double _Fex,_Fey;//for debug, temp,2019.10.09
-
+  
   private:
 };
 
