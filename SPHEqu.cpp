@@ -19,16 +19,16 @@ void CSPHEqu::Accelerate(CRegion &Region,double DeltaT,unsigned int TimeSteps)
 
   // _SPHPressure.Solve(Region);
 
-  //  _SPHViscocity.Solve(Region,TimeSteps);
+  // _SPHViscocity.Solve(Region,TimeSteps);
 
-  //  // _ExtForce.Solve2(Region,TimeSteps);//加入Damp过程的外力施加，XY Hu2012 Equ.(13)
+  // // _ExtForce.Solve2(Region,TimeSteps);//加入Damp过程的外力施加，XY Hu2012 Equ.(13)
 
-  //   _BndForce.Solve(Region);
+  // _BndForce.Solve(Region);
 
-  //   if(Region._ControlSPH._SPHST==1)
-  //     {
-  //       _SPHSTForce.Solve(Region);
-  //     }
+  // if(Region._ControlSPH._SPHST==1)
+  //   {
+  //     _SPHSTForce.Solve(Region);
+  //   }
 
   // if(Region._ControlSPH._SPHAS==1)
   //   {
@@ -44,20 +44,20 @@ void CSPHEqu::Accelerate(CRegion &Region,double DeltaT,unsigned int TimeSteps)
   //     _SPHAVForce.Solve2(Region);
   //   }
 
-  //if(Region._ControlSPH._VSL==1)
-  //{
-  //	_SPHSmoothingEqu.Solve(Region);
-  //}
+  // if(Region._ControlSPH._VSL==1)
+  //   {
+  //     _SPHSmoothingEqu.Solve(Region);
+  //   }
 
   //_SPHShearingForce.Solve(Region,DeltaT);
 
   //_SPHViscoelastic.Solve(Region,DeltaT);
 
-  _SPHEHD.Solve3(Region, TimeSteps);//2019.09.23
+ _SPHEHD.Solve3(Region, TimeSteps);//2019.09.23
 
 
-  double RTC=1.0e-8;
-  if(Region._ControlSPH._RunMod==0)
+ double RTC=1.0e-8;
+ if(Region._ControlSPH._RunMod==0)
     {
       _EquSolve.BICGSolve(Region._SPHAm,Region._SPHu,Region._SPHbu,20,RTC);
       _EquSolve.BICGSolve(Region._SPHAm,Region._SPHv,Region._SPHbv,20,RTC);
