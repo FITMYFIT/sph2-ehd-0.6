@@ -47,7 +47,7 @@ public:
   
   void OutTecplot2(CRegion & Region, unsigned int TimeSteps, string ouputname);//same as OutTecplot, specify outputname
 
-  void outTecplotEHDPLANNER(CRegion & Region, unsigned int TimeSteps, string outputname);//output for ehd planner test, Lopez 2011
+  void outTecplotEHDPLANAR(CRegion & Region, unsigned int TimeSteps, string outputname);//output for ehd planner test, Lopez 2011
   void outTecplotEHDBulkRelax(CRegion & Region, unsigned int TimeSteps, string outputname);//output for ehd bulk relaxation test, Lopez 2011
   void outTecplotIsoCondCylinder(CRegion & Region, unsigned int TimeSteps, string outputname);//output for ehd isolated conducting cylinder test, Lopez 2011
   void outTecplotEHDDrop(CRegion & Region, unsigned int TimeSteps, string outputname);//output for ehd droplet deformation test, Lopez 2011

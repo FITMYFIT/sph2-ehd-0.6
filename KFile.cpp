@@ -1145,8 +1145,19 @@ void CKFile::outTecplotIsoCondCylinder(CRegion & Region,unsigned int TimeSteps, 
       cerr<<"Out put file y=0 line could not be open."<<endl;
       return;
     }
-
   
+  vector <CBasePt*> OutPtList;
+  OutPtList.clear();
+  for(unsigned int i=0;i!=Region._PtList.size();++i)
+    {
+      PtPtr=&Region._PtList[i];
+
+      if(fabs(PtPtr->_y)<sqrt(PtPtr->_Volume)/2.0)
+        {
+          OutPtList.push_back(PtPtr);
+        }
+    }  
+   
   outfile
     <<"VARIABLES= "
     <<"\"AXISX\" "
@@ -1155,22 +1166,23 @@ void CKFile::outTecplotIsoCondCylinder(CRegion & Region,unsigned int TimeSteps, 
     <<endl;
   outfile<<"ZONE T="<<"\""<<Region._ControlSPH._InfileName<<" t= "<<t<<"\" I= "<<34<<", F=POINT"<<endl;
   // for(unsigned int i=2244;i!=2278;++i) //N=64
-  for(unsigned int i=8579;i!=8645;++i) //N=128
+  //for(unsigned int i=8579;i!=8645;++i) //N=128
+  for(unsigned int i=0;i!=OutPtList.size();++i)
     {
-      ErExact=(Region._PtList[i]._x<R?0:Q0/(2*PI*2*Region._PtList[i]._x));
+      ErExact=(OutPtList[i]->_x<R?0:Q0/(2*PI*2*OutPtList[i]->_x));
       //if(ISZERO(Region._PtList[i]._y))
       {
         outfile
           <<setiosflags(ios_base::scientific)
           <<setprecision(16)
-          <<setw(26)<<Region._PtList[i]._x<<" "
-          <<setw(26)<<Region._PtList[i]._eEx<<" "
+          <<setw(26)<<OutPtList[i]->_x<<" "
+          <<setw(26)<<OutPtList[i]->_eEx<<" "
           <<setw(26)<<ErExact<<" "
           <<endl;
       }
     }
 
-  
+  OutPtList.clear();
 
   RhoeExt.clear();
 
@@ -1182,7 +1194,7 @@ void CKFile::outTecplotEHDDrop (CRegion & Region,unsigned int TimeSteps, string 
 {
   ofstream outfile;
   ostringstream outfilename;
-  outfilename<<outputname<<setw(8)<<setfill('0')<<TimeSteps<<setw(4)<<".dat";
+  outfilename<<outputname<<setw(8)<<setfill('0')<<TimeSteps<<"-64"<<setw(4)<<".dat";
   outfile.open(outfilename.str().data(),ios::out);
 
   if (!outfile)
@@ -1213,12 +1225,16 @@ void CKFile::outTecplotEHDDrop (CRegion & Region,unsigned int TimeSteps, string 
     <<"\"Fex\" "
     <<"\"Fey\" "
     <<"\"EPSILON\" "
-    <<"\"KAPPA\" "
+    <<"\"EPSILONx\" "
+    <<"\"EPSILONy\" "
+    <<"\"K\" "
+    <<"\"Kx\" "
+    <<"\"Ky\" "
     <<"\"RHOE\" "
     //  <<"\"RHOEExt\" "
     <<"\"PHI\" "
-    <<"\"EX\" "
-    <<"\"EY\" "
+    <<"\"Ex\" "
+    <<"\"Ey\" "
     // <<"\"PHIext\" "
     // <<"\"Eext\" "
     // <<"\"ErrorPHI\" "
@@ -1264,7 +1280,11 @@ void CKFile::outTecplotEHDDrop (CRegion & Region,unsigned int TimeSteps, string 
           <<setw(26)<<SPHPtPtr->_Fex<<" "
           <<setw(26)<<SPHPtPtr->_Fey<<" "
           <<setw(26)<<SPHPtPtr->_eEpsilon<<" "
+          <<setw(26)<<SPHPtPtr->_geEpsilonx<<" "
+          <<setw(26)<<SPHPtPtr->_geEpsilony<<" "
           <<setw(26)<<SPHPtPtr->_eKappa<<" "
+          <<setw(26)<<SPHPtPtr->_gKappax<<" "
+          <<setw(26)<<SPHPtPtr->_gKappay<<" "
           <<setw(26)<<SPHPtPtr->_eRho<<" "
           //  <<setw(26)<<RhoeExt[iii]<<" "//exact phi, used for ehdplanner test, Lopez 2011 Table1
           <<setw(26)<<SPHPtPtr->_ePhi<<" "
@@ -1275,35 +1295,97 @@ void CKFile::outTecplotEHDDrop (CRegion & Region,unsigned int TimeSteps, string 
       }
     }
 
+
+  //output v along theta=pi/4
+
+  CBasePt * PtPtr;
+  double theta;//the angle of each particle
+  double DelTheta;//the micro angle that accepted
+  double r;
+  double dp;
+  dp=sqrt(Region._PtList[0]._Volume);
+  DelTheta=atan(dp/0.1/2.0);
+  vector <unsigned int> PtListTheta;
+  PtListTheta.clear();
   
+  for(unsigned int i=0;i!=Region._PtList.size();++i)
+    {
+      PtPtr=&Region._PtList[i];
+
+      theta=atan2(PtPtr->_y,PtPtr->_x);
+
+      if((theta>PI/4-DelTheta)&&(theta<PI/4+DelTheta))
+        {
+          PtListTheta.push_back(PtPtr->_ID);
+        }      
+    }
+
+  
+  t=TimeSteps*Region._ControlSPH._DeltaT;  
+   outfile.close();
+   outfilename.str("");
+   outfilename<<"Vr-"<<outputname<<TimeSteps<<".dat";
+   outfile.open(outfilename.str().data(),ios::out);
+   if (!outfile)
+    {
+      cerr<<"Out put file y=0 line could not be open."<<endl;
+      return;
+    }
+
+  for(unsigned int i=0;i!=PtListTheta.size();++i)
+    {
+      PtPtr=&Region._PtList[PtListTheta[i]-1];
+      theta=atan2(PtPtr->_y,PtPtr->_x);
+      
+      outfile
+          <<setiosflags(ios_base::scientific)
+          <<setprecision(16)
+          <<setw(26)<<sqrt(PtPtr->_x*PtPtr->_x+PtPtr->_y*PtPtr->_y)<<" "         
+          <<setw(26)<<theta<<" "
+          <<setw(26)<<PtPtr->_u*cos(theta)+PtPtr->_v*sin(theta)<<" "
+          <<setw(26)<<-PtPtr->_u*sin(theta)+PtPtr->_v*cos(theta)<<" "
+          <<setw(26)<<PtPtr->_u<<" "
+          <<setw(26)<<PtPtr->_v<<" "
+          <<setw(26)<<PtPtr->_x<<" "
+          <<setw(26)<<PtPtr->_y<<" "
+          <<setw(26)<<PtPtr->_PID<<" "
+          <<setw(26)<<PtPtr->_ID<<" "
+          
+          <<endl;
+    }
+
+  PtListTheta.clear();
+  //-----------------------------------------------------------------------------------------------------
+  
+ //------------------------------------------------------------------------------------------------
+  //output Er in the EHD DROP test 
   t=TimeSteps*Region._ControlSPH._DeltaT;  
   //output Er, from center to out
   outfile.close();
   double ErExact;
   outfilename.str("");
-  outfilename<<"Er-"<<outputname<<TimeSteps<<".dat";
+  outfilename<<"Er-"<<outputname<<TimeSteps<<"-64"<<".dat";
   outfile.open(outfilename.str().data(),ios::out);
   if (!outfile)
     {
       cerr<<"Out put file y=0 line could not be open."<<endl;
       return;
     }
-
   
-  // outfile
-  //   <<"VARIABLES= "
-  //   <<"\"AXISX\" "
-  //   <<"\"Er\" "
-  //   // <<"\"ErExt\" "
-  //   <<endl;
-  // outfile<<"ZONE T="<<"\""<<Region._ControlSPH._InfileName<<" t= "<<t<<"\" I= "<<34<<", F=POINT"<<endl;
+  outfile
+    <<"VARIABLES= "
+    <<"\"AXISX\" "
+    <<"\"Er\" "
+    // <<"\"ErExt\" "
+    <<endl;
+  outfile<<"ZONE T="<<"\""<<Region._ControlSPH._InfileName<<" t= "<<t<<"\" I= "<<34<<", F=POINT"<<endl;
 
   double R=2.5; //kappa1/kappa2
-  // for(unsigned int i=2244;i!=2278;++i) //N=64
-  for(unsigned int i=33540;i!=33668;++i) //N=256,2^8
+  for(unsigned int i=2244;i!=2278;++i) //N=64
+    // for(unsigned int i=33540;i!=33668;++i) //N=256,2^8
     // for(unsigned int i=8580;i!=8644;++i) //N=128,2^7
     // for(unsigned int i=25347;i!=25412;++i) //N=128,2^7,3 blocks
-    //for(unsigned int i=132612;i!=132868;++i) //N=512,2^9
+    // for(unsigned int i=132612;i!=132868;++i) //N=512,2^9
     //for(unsigned int i=74884;i!=75076;++i) //N=256+128, L=3
     {
       //  ErExact=(Region._PtList[i]._x<R?0:Q0/(2*PI*2*Region._PtList[i]._x));
@@ -1319,14 +1401,14 @@ void CKFile::outTecplotEHDDrop (CRegion & Region,unsigned int TimeSteps, string 
           <<setw(26)<<Region._PtList[i]._ePhi<<" "
           <<setw(26)<<Region._PtList[i]._geEpsilonx<<" "
           <<setw(26)<<Region._PtList[i]._geEpsilony<<" "
+          <<setw(26)<<Region._PtList[i]._gKappax<<" "
+          <<setw(26)<<Region._PtList[i]._gKappay<<" "
           
           //  <<setw(26)<<ErExact<<" "
           <<endl;
       }
-    }
-
-  
-
+    }  
+  //-----------------------------------------------------------------------------------------------------
   RhoeExt.clear();
 
   cout<<"Output file "<<"\"" <<outfilename.str() <<"\""<<" has been written."<<endl;
@@ -1334,7 +1416,7 @@ void CKFile::outTecplotEHDDrop (CRegion & Region,unsigned int TimeSteps, string 
   outfile.close();
 }
 
-void CKFile::outTecplotEHDPLANNER(CRegion & Region,unsigned int TimeSteps, string outputname)
+void CKFile::outTecplotEHDPLANAR(CRegion & Region,unsigned int TimeSteps, string outputname)
 {
   ofstream outfile;
   ostringstream outfilename;
@@ -1405,7 +1487,7 @@ void CKFile::outTecplotEHDPLANNER(CRegion & Region,unsigned int TimeSteps, strin
         {
           y=SPHPtPtr->_y;
           //case 1: dielectric-dielectric
-          if(Region._ControlSPH._InfileName=="ehdplanercase1")
+          if(Region._ControlSPH._InfileName=="ehdplanarcase1")
             {
               beta=3;
               if(SPHPtPtr->_y<0)//lower
@@ -1421,7 +1503,7 @@ void CKFile::outTecplotEHDPLANNER(CRegion & Region,unsigned int TimeSteps, strin
             }
 
           //case 2: conducting-conducting
-          if(Region._ControlSPH._InfileName=="ehdplanercase2")
+          if(Region._ControlSPH._InfileName=="ehdplanarcase2")
             {
               beta=3;
               eta=2;
@@ -1438,19 +1520,19 @@ void CKFile::outTecplotEHDPLANNER(CRegion & Region,unsigned int TimeSteps, strin
             }
             }
           //case 3: conducting-dielectric
-          if(Region._ControlSPH._InfileName=="ehdplanercase3")
+          if(Region._ControlSPH._InfileName=="ehdplanarcase3")
             {
               beta=3;
               if(SPHPtPtr->_y<0)//lower
-            {
-              Phiext[i]=1;
-              Eext[i]=0;
-            }
-          else//upper
-            {
-              Phiext[i]=-2*y+1;
-              Eext[i]=2;
-            }
+                {
+                  Phiext[i]=1;
+                  Eext[i]=0;
+                }
+              else//upper
+                {
+                  Phiext[i]=-2*y+1;
+                  Eext[i]=2;
+                }
             }
 
           //if case 3, lower, no errorE
@@ -1458,7 +1540,9 @@ void CKFile::outTecplotEHDPLANNER(CRegion & Region,unsigned int TimeSteps, strin
             {
               ErrorE[i]=1-SPHPtPtr->_eEy/Eext[i];
             }
-          ErrorPhi[i]=1-SPHPtPtr->_ePhi/Phiext[i];     
+
+          if(!ISZERO(Phiext[i]))
+            ErrorPhi[i]=1-SPHPtPtr->_ePhi/Phiext[i];     
         }
     }
   
@@ -1504,13 +1588,62 @@ void CKFile::outTecplotEHDPLANNER(CRegion & Region,unsigned int TimeSteps, strin
     }
 
 
+ 
+  
+  cout<<"Output file "<<"\"" <<outfilename.str() <<"\""<<" has been written."<<endl;
+
+  //output profiles along x=0
+  outfile.close();
+  outfilename.str("");
+  outfilename<<"x=0-"<<outputname<<TimeSteps<<".dat";
+  outfile.open(outfilename.str().data(),ios::out);
+  if (!outfile)
+    {
+      cerr<<"Out put file for profile on x=0 could not be open."<<endl<<"tecplot.dat"<<endl;
+      return;
+    }
+
+  CBasePt * PtPtr;
+  vector <CBasePt*> OutPtList;
+  OutPtList.clear();
+  for(unsigned int i=0;i!=Region._PtList.size();++i)
+    {
+      PtPtr=&Region._PtList[i];
+
+      if(PtPtr->_x>0&&PtPtr->_x<sqrt(PtPtr->_Volume))
+        {
+          OutPtList.push_back(PtPtr);
+        }
+    }
+  for(unsigned int i=0;i!=OutPtList.size();++i)
+    {   
+      outfile
+        <<setiosflags(ios_base::scientific)
+        <<setprecision(16)
+        <<setw(26)<<OutPtList[i]->_y<<" "
+        <<setw(26)<<OutPtList[i]->_eEx<<" "
+        <<setw(26)<<OutPtList[i]->_eEy<<" "
+        <<setw(26)<<OutPtList[i]->_ePhi<<" "
+        <<setw(26)<<OutPtList[i]->_eEpsilon<<" "
+        <<setw(26)<<OutPtList[i]->_geEpsilonx<<" "
+        <<setw(26)<<OutPtList[i]->_geEpsilony<<" "          
+        <<setw(26)<<OutPtList[i]->_eKappa<<" "
+        <<setw(26)<<OutPtList[i]->_gKappax<<" "
+        <<setw(26)<<OutPtList[i]->_gKappay<<" "
+        <<setw(26)<<Eext[OutPtList[i]->_ID-1]<<" "
+        <<setw(26)<<Phiext[OutPtList[i]->_ID-1]<<" "
+        <<setw(26)<<ErrorE[OutPtList[i]->_ID-1]<<" "
+        <<setw(26)<<ErrorPhi[OutPtList[i]->_ID-1]<<" "
+          
+        <<endl; 
+    }
+
+  OutPtList.clear();
   Phiext.clear();
   Eext.clear();
   ErrorE.clear();
   ErrorPhi.clear();
-  
-  cout<<"Output file "<<"\"" <<outfilename.str() <<"\""<<" has been written."<<endl;
-
+ 
   outfile.close();
 }
 

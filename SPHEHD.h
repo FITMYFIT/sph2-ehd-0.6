@@ -51,6 +51,9 @@ public:
   void Solve2(CRegion & Region, unsigned int Timesteps);// the scheme used in Basilisk,http://basilisk.dalembert.upmc.fr/src/ehd/implicit.h
 
   void Solve3(CRegion & Region, unsigned int Timesteps);// based on solve2, calculate drhe instead of rhoe n+1
+
+  void Solve4(CRegion & Region, unsigned int Timesteps);// based on solve3, expand $/nabla /cdot /tao /nabla /phi$
+  
 private:
 
   void output(double ** a, double * b, int n);//for debug, ouput coeffecient matrix for nabla (nabla(epsilon phi))=rhoe

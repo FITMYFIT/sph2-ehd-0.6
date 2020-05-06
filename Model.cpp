@@ -8,25 +8,26 @@ CModel::~CModel()
 {
 }
 
-void CModel::EHDPlannar(CRegion &Region)
+void CModel::EHDPlanar(CRegion &Region)
 {
   unsigned int N=33;//the particle number in x and y directions
-  //N=65;
+ N=65;
+ // N=129;
 
-  Region._ControlSPH._CellNumx=Region._ControlSPH._CellNumy=N;//the box number, specified here, the value in .k file will not be used
+ Region._ControlSPH._CellNumx=Region._ControlSPH._CellNumy=N;//the box number, specified here, the value in .k file will not be used
 
-  double xlb=-0.5;//left bottom corner
-  double ylb=-0.5;
-  double xru=0.5;//right upper corner
-  double yru=0.5;
+ double xlb=-0.5;//left bottom corner
+ double ylb=-0.5;
+ double xru=0.5;//right upper corner
+ double yru=0.5;
 
-  double psize=(xru-xlb)/(N);// particle size
+ double psize=(xru-xlb)/(N);// particle size
 
-  // Region._PtList.clear();
-  Region._PtList.resize((N+1)*(N+1));
+ // Region._PtList.clear();
+ Region._PtList.resize((N+1)*(N+1));
 
-  CBasePt * BasePtPtr;
-  for(unsigned int i=0;i!=N+1;++i)
+ CBasePt * BasePtPtr;
+ for(unsigned int i=0;i!=N+1;++i)
     {
       for(unsigned int j=0;j!=N+1;++j)
         {
@@ -57,7 +58,7 @@ void CModel::EHDPlannar(CRegion &Region)
               if(ISZERO((BasePtPtr->_y-yru))) //upper layer
                 {
                   BasePtPtr->_PID=4;
-                  BasePtPtr->_ePhi=0.0;
+                  BasePtPtr->_ePhi=0;
                   BasePtPtr->_Type=enEHDBndPt;
                 }
               else
@@ -164,8 +165,345 @@ void CModel::EHDPlannar(CRegion &Region)
        Region._PtList[i]._ID=icount;
      }
 }
+void CModel::EHDPlanar3layers(CRegion &Region)
+{
+  unsigned int N=33;//the particle number in x and y directions
+  N=65;
+  N=129;
+  N=128*2+1;
 
+  Region._ControlSPH._CellNumx=Region._ControlSPH._CellNumy=N;//the box number, specified here, the value in .k file will not be used
 
+  double xlb=-0.5;//left bottom corner
+  double ylb=-0.5;
+  double xru=0.5;//right upper corner
+  double yru=0.5;
+
+  double psize=(xru-xlb)/(N);// particle size
+
+  unsigned int Nmid=(N-1)/3; //3 layers, particle number of the middle layer in y direction
+
+  // Region._PtList.clear();
+  Region._PtList.resize((N+1)*(N+1));
+
+  CBasePt * BasePtPtr;
+  for(unsigned int i=0;i!=N+1;++i)
+    {
+      for(unsigned int j=0;j!=N+1;++j)
+        {
+          // CBasePt * BasePtPtr=new(CBasePt);
+          BasePtPtr=&Region._PtList[i*(N+1)+j];
+          BasePtPtr->_ID=i*(N+1)+j+1;
+
+          BasePtPtr->_x=xlb+j*psize;
+          BasePtPtr->_y=ylb+i*psize;
+
+          if(BasePtPtr->_y<0)
+            {
+              if(ISZERO((BasePtPtr->_y-ylb))) //bottom layer
+                {
+                  BasePtPtr->_PID=1;
+                  BasePtPtr->_ePhi=0.5;
+                  BasePtPtr->_Type=enEHDBndPt;
+                }
+              else
+                {
+                  if(BasePtPtr->_y<-(Nmid/2*psize))
+                    BasePtPtr->_PID=2;//the bottom fluid layer
+                  else
+                       BasePtPtr->_PID=3;//the middle layer
+                  
+                  BasePtPtr->_ePhi=0.0;
+                  BasePtPtr->_Type=enSPHPt;
+                }
+            }
+          else
+            {
+              if(ISZERO((BasePtPtr->_y-yru))) //upper layer
+                {
+                  BasePtPtr->_PID=5;//the upper boundary layer
+                  BasePtPtr->_ePhi=-0.5;
+                  BasePtPtr->_Type=enEHDBndPt;
+                }
+              else
+                {
+                  if(BasePtPtr->_y<Nmid/2*psize)
+                    BasePtPtr->_PID=3;//the middle layer
+                  else
+                    BasePtPtr->_PID=4;//the upper fluid layer
+                  
+                  BasePtPtr->_ePhi=0.0;
+                  BasePtPtr->_Type=enSPHPt;
+                }
+            }
+
+          BasePtPtr->_Volume=psize*psize;
+
+          BasePtPtr->_u=0.0;
+          BasePtPtr->_v=0.0;
+
+          BasePtPtr->_rho=1.0;
+          BasePtPtr->_rho0=1.0;
+          BasePtPtr->_m=BasePtPtr->_rho0*BasePtPtr->_Volume;
+          BasePtPtr->_h=Region._PartList[BasePtPtr->_PID-1]._HdivDp*psize;
+          BasePtPtr->_r=2.0*BasePtPtr->_h;
+
+          BasePtPtr->_C0=Region._PartList[BasePtPtr->_PID-1]._C0;
+
+          BasePtPtr->_Cs=Region._ControlSPH._Cs;
+
+          BasePtPtr->_p=0.0;
+          BasePtPtr->_Iflag=0;
+
+          //ehd concerned variables
+          BasePtPtr->_eEpsilon=0.0;
+          BasePtPtr->_eEx=0.0;
+          BasePtPtr->_eEy=0.0;
+          BasePtPtr->_eRho=0.0;
+
+          // Region._PtList.push_back(*BasePtPtr);
+          // Region._PtList[i*N+j-1]=*BasePtPtr;
+        }
+    }
+
+  // // //the planner model, add 2 layers upper and bottom
+  unsigned int icount=0;
+  unsigned int PtNum0=Region._PtList.size();
+  CPart Part7,Part6;//the part on the bottom and uppercase
+  Part6=Region._PartList[0];
+  Part7=Region._PartList[3];   
+
+  Part6._PID=6;
+  Part6._PartType=enEHDDum;
+
+  Part7._PID=7;
+  Part7._PartType=enEHDDum;
+
+  Region._PartList.push_back(Part6);
+  Region._PartList.push_back(Part6);
+   
+  for (unsigned int i =0;i!=PtNum0;++i)
+    {
+      if(Region._PtList[i]._PID==1||Region._PtList[i]._PID==5)//the bottom layer
+        {
+          CBasePt BasePt2;
+          CBasePt BasePt3;
+           
+          BasePt2=Region._PtList[i];
+          BasePt3=Region._PtList[i];
+
+          if(BasePt2._PID==1)//the bottom layer
+            {
+              BasePt2._y-=psize;
+              BasePt3._y-=2*psize;
+              BasePt2._PID=6;
+              BasePt3._PID=6;
+              BasePt2._ID=PtNum0+(++icount);
+              BasePt3._ID=PtNum0+(++icount);
+               
+              BasePt2._Type=enEHDDumPt;
+              BasePt3._Type=enEHDDumPt;
+               
+              Region._PtList.push_back(BasePt2);
+              // Region._PtList.push_back(BasePt3);
+            }
+          if(BasePt2._PID==5)//the upper layer
+            {
+              BasePt2._y+=psize;
+              BasePt3._y+=2*psize;
+              BasePt2._PID=7;
+              BasePt3._PID=7;
+              BasePt2._ID=PtNum0+(++icount);
+              BasePt3._ID=PtNum0+(++icount);
+
+              BasePt2._Type=enEHDDumPt;
+              BasePt3._Type=enEHDDumPt;
+               
+              Region._PtList.push_back(BasePt2);
+              //Region._PtList.push_back(BasePt3);
+            }
+        }
+    }
+
+  //set ID of all the particles again
+  icount=0;
+  for(unsigned int i=0;i!=Region._PtList.size();++i)
+    {
+      icount++;
+      Region._PtList[i]._ID=icount;
+    }
+}
+//envoled from ehdplanar3layers, change the middle layer to a drop with radius r
+void CModel::EHDPlanardropin(CRegion &Region)
+{
+  unsigned int N=33;//the particle number in x and y directions
+  N=65;
+  N=129;
+  //N=128*2+1;
+
+  double r=0.1;//the radius of the drop in the middle
+  
+  Region._ControlSPH._CellNumx=Region._ControlSPH._CellNumy=N;//the box number, specified here, the value in .k file will not be used
+
+  double xlb=-0.5;//left bottom corner
+  double ylb=-0.5;
+  double xru=0.5;//right upper corner
+  double yru=0.5;
+
+  double psize=(xru-xlb)/(N);// particle size
+
+  unsigned int Nmid=(N-1)/3; //3 layers, particle number of the middle layer in y direction
+
+  // Region._PtList.clear();
+  Region._PtList.resize((N+1)*(N+1));
+
+  CBasePt * BasePtPtr;
+  for(unsigned int i=0;i!=N+1;++i)
+    {
+      for(unsigned int j=0;j!=N+1;++j)
+        {
+          // CBasePt * BasePtPtr=new(CBasePt);
+          BasePtPtr=&Region._PtList[i*(N+1)+j];
+          BasePtPtr->_ID=i*(N+1)+j+1;
+
+          BasePtPtr->_x=xlb+j*psize;
+          BasePtPtr->_y=ylb+i*psize;
+
+          if(BasePtPtr->_y<0)
+            {
+              if(ISZERO((BasePtPtr->_y-ylb))) //bottom layer
+                {
+                  BasePtPtr->_PID=1;
+                  BasePtPtr->_ePhi=0.5;
+                  BasePtPtr->_Type=enEHDBndPt;
+                }
+              else
+                {
+                  if(sqrt(BasePtPtr->_x*BasePtPtr->_x+BasePtPtr->_y*BasePtPtr->_y)>r)
+                    BasePtPtr->_PID=2;//the bottom fluid layer
+                  else
+                       BasePtPtr->_PID=3;//the middle layer
+                  
+                  BasePtPtr->_ePhi=0.0;
+                  BasePtPtr->_Type=enSPHPt;
+                }
+            }
+          else
+            {
+              if(ISZERO((BasePtPtr->_y-yru))) //upper layer
+                {
+                  BasePtPtr->_PID=5;//the upper boundary layer
+                  BasePtPtr->_ePhi=-0.5;
+                  BasePtPtr->_Type=enEHDBndPt;
+                }
+              else
+                {
+                  if(sqrt(BasePtPtr->_x*BasePtPtr->_x+BasePtPtr->_y*BasePtPtr->_y)<=r)
+                    BasePtPtr->_PID=3;//the middle layer
+                  else
+                    BasePtPtr->_PID=4;//the upper fluid layer
+                  
+                  BasePtPtr->_ePhi=0.0;
+                  BasePtPtr->_Type=enSPHPt;
+                }
+            }
+
+          BasePtPtr->_Volume=psize*psize;
+
+          BasePtPtr->_u=0.0;
+          BasePtPtr->_v=0.0;
+
+          BasePtPtr->_rho=1.0;
+          BasePtPtr->_rho0=1.0;
+          BasePtPtr->_m=BasePtPtr->_rho0*BasePtPtr->_Volume;
+          BasePtPtr->_h=Region._PartList[BasePtPtr->_PID-1]._HdivDp*psize;
+          BasePtPtr->_r=2.0*BasePtPtr->_h;
+
+          BasePtPtr->_C0=Region._PartList[BasePtPtr->_PID-1]._C0;
+
+          BasePtPtr->_Cs=Region._ControlSPH._Cs;
+
+          BasePtPtr->_p=0.0;
+          BasePtPtr->_Iflag=0;
+
+          //ehd concerned variables
+          BasePtPtr->_eEpsilon=0.0;
+          BasePtPtr->_eEx=0.0;
+          BasePtPtr->_eEy=0.0;
+          BasePtPtr->_eRho=0.0;
+
+          // Region._PtList.push_back(*BasePtPtr);
+          // Region._PtList[i*N+j-1]=*BasePtPtr;
+        }
+    }
+
+  // // //the planner model, add 2 layers upper and bottom
+  unsigned int icount=0;
+  unsigned int PtNum0=Region._PtList.size();
+  CPart Part7,Part6;//the part on the bottom and uppercase
+  Part6=Region._PartList[0];
+  Part7=Region._PartList[3];   
+
+  Part6._PID=6;
+  Part6._PartType=enEHDDum;
+
+  Part7._PID=7;
+  Part7._PartType=enEHDDum;
+
+  Region._PartList.push_back(Part6);
+  Region._PartList.push_back(Part6);
+   
+  for (unsigned int i =0;i!=PtNum0;++i)
+    {
+      if(Region._PtList[i]._PID==1||Region._PtList[i]._PID==5)//the bottom layer
+        {
+          CBasePt BasePt2;
+          CBasePt BasePt3;
+           
+          BasePt2=Region._PtList[i];
+          BasePt3=Region._PtList[i];
+
+          if(BasePt2._PID==1)//the bottom layer
+            {
+              BasePt2._y-=psize;
+              BasePt3._y-=2*psize;
+              BasePt2._PID=6;
+              BasePt3._PID=6;
+              BasePt2._ID=PtNum0+(++icount);
+              BasePt3._ID=PtNum0+(++icount);
+               
+              BasePt2._Type=enEHDDumPt;
+              BasePt3._Type=enEHDDumPt;
+               
+              Region._PtList.push_back(BasePt2);
+              // Region._PtList.push_back(BasePt3);
+            }
+          if(BasePt2._PID==5)//the upper layer
+            {
+              BasePt2._y+=psize;
+              BasePt3._y+=2*psize;
+              BasePt2._PID=7;
+              BasePt3._PID=7;
+              BasePt2._ID=PtNum0+(++icount);
+              BasePt3._ID=PtNum0+(++icount);
+
+              BasePt2._Type=enEHDDumPt;
+              BasePt3._Type=enEHDDumPt;
+               
+              Region._PtList.push_back(BasePt2);
+              //Region._PtList.push_back(BasePt3);
+            }
+        }
+    }
+
+  //set ID of all the particles again
+  icount=0;
+  for(unsigned int i=0;i!=Region._PtList.size();++i)
+    {
+      icount++;
+      Region._PtList[i]._ID=icount;
+    }
+}
 void CModel::EHDBulkRelax(CRegion & Region)
 {
   unsigned int N=64;//the particle number in x and y directions
@@ -288,14 +626,14 @@ void CModel::EHDIsoCondCylinder (CRegion & Region)
             {
               BasePtPtr->_PID=4;
               BasePtPtr->_Type=enEHDDumPt;
-              BasePtPtr->_eRho=0.5;
+              BasePtPtr->_eRho=0.0;
             }
 
           else if(i==1||i==N+1||j==1||j==N+1)
             {
               BasePtPtr->_PID=3;
               BasePtPtr->_Type=enEHDBndPt;
-              BasePtPtr->_eRho=0.5;
+              BasePtPtr->_eRho=0.0;
             }
           else
             {

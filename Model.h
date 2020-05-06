@@ -31,8 +31,12 @@ public:
 
   ~CModel();
 
-  void EHDPlannar(CRegion & Region);//lopez 2011 4.1 problem
+  void EHDPlanar(CRegion & Region);//lopez 2011 4.1 problem
 
+  void EHDPlanar3layers(CRegion & Region);//lopez 2011 4.1 problem
+
+  void EHDPlanardropin(CRegion & Region);//lopez 2011 4.1 problem
+  
   void EHDBulkRelax(CRegion & Region);//Lopez 2011 4.2.1 problem
 
   void EHDIsoCondCylinder(CRegion & Region);//Lopez 2011 4.2.2 problem

@@ -53,11 +53,11 @@ void CSPHEqu::Accelerate(CRegion &Region,double DeltaT,unsigned int TimeSteps)
 
   //_SPHViscoelastic.Solve(Region,DeltaT);
 
- _SPHEHD.Solve3(Region, TimeSteps);//2019.09.23
+  _SPHEHD.Solve4(Region, TimeSteps);//2019.09.23
 
 
- double RTC=1.0e-8;
- if(Region._ControlSPH._RunMod==0)
+  double RTC=1.0e-8;
+  if(Region._ControlSPH._RunMod==0)
     {
       _EquSolve.BICGSolve(Region._SPHAm,Region._SPHu,Region._SPHbu,20,RTC);
       _EquSolve.BICGSolve(Region._SPHAm,Region._SPHv,Region._SPHbv,20,RTC);

@@ -4,6 +4,7 @@ CGetKnlList::CGetKnlList(enKNLTYPE Type)
 :_Type(Type)
 {
 	_norm=15.0/(7.0*3.1415926);
+  _normWed5=7/(64*3.1415926);
 }
 
 CGetKnlList::~CGetKnlList()
@@ -133,6 +134,44 @@ void CGetKnlList::GetW(double x,double y,double h,double distance2,double & W,do
 	}
 }
 
+//5th Wendland kernel, 
+void CGetKnlList::GetWWed5(double x,double y,double h,double distance2,double & W,double & Wx,double & Wy,double & Ww)
+{
+ 
+  double distance;
+  double s;
+  double temp;
+
+  if(!IsZero(distance2))
+    {
+      distance=sqrt(distance2);
+      s=distance/h;
+
+      temp=_normWed5/(h*h)*pow((2-s),3);
+      
+      if(s<=2.0)
+        {
+          W=temp*(2-s)*(1+2*s);
+          Ww=temp*(-10*s/h)/distance;
+          Wx=Ww*x;
+          Wy=Ww*y;
+        }
+      else
+        {
+          W=0;
+          Ww=0;
+          Wx=0;
+          Wy=0;
+        }     
+    }
+  else
+    {
+      W=16*_normWed5/(h*h);
+      Ww=0;
+      Wx=0;
+      Wy=0; 
+    }
+}
 void CGetKnlList::GetW2(double x,double y,double h,double distance2,double & W,double & Wx,double & Wy,double & W2)
 {
 	double s;

@@ -50,12 +50,16 @@ public:
 private:
   double _norm;
 
+  double _normWed5;
+
 	CCSPM _CSPMG;
 
   COperator _OperatorG;
 
 	void GetW(double x,double y,double h,double distance2,double & W,double & Wx,double & Wy,double & Ww);
-
+  
+	void GetWWed5(double x,double y,double h,double distance2,double & W,double & Wx,double & Wy,double & Ww);//5th Wendland Kernel, Monaghan J J. On the integration of the SPH equations for a highly viscous fluid[J]. Journal of Computational Physics, 2019.
+  
 	void GetW2(double x,double y,double h,double distance2,double & W,double & Wx,double & Wy,double & W2);
 };
 #endif

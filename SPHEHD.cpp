@@ -1,5 +1,11 @@
 #include "SPHEHD.h"
 
+//define a macro to control whether or not smooth epsilon and K
+#define SMOOTH 1
+#define CALDRHOE 1 //a macro to control calculating drhoe with K or directly calculating rhoe with epsilon
+
+//1, Ki+Kj; 2. 4KiKj/(Ki+Kj); 3. expand nabla(K \cdot \nabla phi)=(\nabla K) cdot (\nabla \phi)+ K (\nabla \cdot \nabla \phi)
+#define SECORDFORM 21 //a macro to 0, 1 ,2 to control the formation of second order derivative
 
 CSPHEHD::CSPHEHD()
 {
@@ -75,15 +81,6 @@ void CSPHEHD::Solve(CRegion & Region, unsigned int Timesteps)
           }
       }
     }
-  
-  //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  //temp, specify epsilon and kappa from the part, without transient region between two fluid
-  // for(unsigned int i=0;i!=Region._PtList.size();++i)
-  // {
-  //   BasePtPtr=&Region._PtList[i];
-  //   BasePtPtr->_eEpsilon=Region._PartList[BasePtPtr->_PID-1]._eEpsilon;
-  // }
-
   
   //2.solve charge density conservation equ Lopez 2011 Equ(21)
   //2.1 solve deRho
@@ -377,7 +374,7 @@ void CSPHEHD::Solve(CRegion & Region, unsigned int Timesteps)
   by.clear();
 
   CKFile kfiletemp;
-  kfiletemp.outTecplotEHDPLANNER(Region,Timesteps,"xxehd-case2");
+  kfiletemp.outTecplotEHDPLANAR(Region,Timesteps,"xxehd-case2");
   // kfiletemp.OutPtNeighbour(Region, &Region._PtList[1290], Timesteps, "1291neighbor");
 
   std::cout<<"--------------------------------"<<endl;
@@ -812,16 +809,6 @@ void CSPHEHD::Solve3(CRegion & Region, unsigned int Timesteps)
     }
 
 
-  //temp, for test, do not interpolate kappa and epsilon
-  //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  //temp, specify epsilon and kappa from the part, without transient region between two fluid
-  // for(unsigned int i=0;i!=Region._PtList.size();++i)
-  //   {
-  //     BasePtPtr=&Region._PtList[i];
-  //     BasePtPtr->_eEpsilon=Region._PartList[BasePtPtr->_PID-1]._eEpsilon;
-  //     BasePtPtr->_eKappa=Region._PartList[BasePtPtr->_PID-1]._eKappa;
-  //   }
-  
   //interpolate Ex,Ey, Phie of ehd boundary particle from fluid particles
   InterpEHDBndProperty(Region, Timesteps);
 
@@ -829,7 +816,7 @@ void CSPHEHD::Solve3(CRegion & Region, unsigned int Timesteps)
   InterpEHDDumPropterty(Region, Timesteps);
 
   //2.calulate phi n+1, construct A(phi n+1)=b, nabla((K*deltaT+epsilon)*nabla(phi n+1))=-rhoe n
-  //---------------------------------------------------------------------------------------------------------------------
+  //---------------------------------------------------------------------------------------------------
   //use laspack to solve linear equ.
   unsigned int PtNum=Region._CalList.size();//the number used to initializae the size of linear equation
   QMatrix LasA;//laspack amtrix A
@@ -890,17 +877,23 @@ void CSPHEHD::Solve3(CRegion & Region, unsigned int Timesteps)
               IDi=PtiPtr->_ID2;
               IDj=PtjPtr->_ID2;
 
-              epsiloni=Region._PartList[PtiPtr->_PID-1]._eEpsilon;//epsilon not smoothed
-              epsilonj=Region._PartList[PtjPtr->_PID-1]._eEpsilon;
+              if(SMOOTH)//use the smoothed epsilon & K
+                {
+                  epsiloni=PtiPtr->_eEpsilon;
+                  epsilonj=PtjPtr->_eEpsilon;
 
-              kappai=Region._PartList[PtiPtr->_PID-1]._eKappa;//kappa not smoothed
-              kappaj=Region._PartList[PtjPtr->_PID-1]._eKappa;
+                  kappai=PtiPtr->_eKappa;
+                  kappaj=PtjPtr->_eKappa; 
+                }
 
-              // epsiloni=PtiPtr->_eEpsilon;
-              // epsilonj=PtjPtr->_eEpsilon;
+              else
+                {
+                  epsiloni=Region._PartList[PtiPtr->_PID-1]._eEpsilon;//epsilon not smoothed
+                  epsilonj=Region._PartList[PtjPtr->_PID-1]._eEpsilon;
 
-              // kappai=PtiPtr->_eKappa;
-              // kappaj=PtjPtr->_eKappa;
+                  kappai=Region._PartList[PtiPtr->_PID-1]._eKappa;//kappa not smoothed
+                  kappaj=Region._PartList[PtjPtr->_PID-1]._eKappa;
+                }
 
               //norm=(kappai*DeltaT+epsiloni+kappaj*DeltaT+epsilonj)*KnlPtr->_Ww;
               norm=4*(kappai*DeltaT+epsiloni)*(kappaj*DeltaT+epsilonj)/(kappai*DeltaT+epsiloni+kappaj*DeltaT+epsilonj)*KnlPtr->_Ww;
@@ -944,6 +937,8 @@ void CSPHEHD::Solve3(CRegion & Region, unsigned int Timesteps)
   // V_SetAllCmp(&Lasx, 0.0);//initial value 0
 
   BiCGSTABIter(&LasA, &Lasx, &Lasb, 100, SSORPrecond,1.2);//the 4th parameter 100, is the maxiter steps
+
+  //BiCGIter(&LasA, &Lasx, &Lasb, 100, SSORPrecond,1.2);
   // outputV( Lasx,  "xxbicgs-20");
   //output2(LasA, Lasx, Lasb, "xxbicgs-ax=b");
 
@@ -980,14 +975,21 @@ void CSPHEHD::Solve3(CRegion & Region, unsigned int Timesteps)
           //drhoei=-sum(mj/rhoj*(ki+kj)*DeltaT*(phii-phij)*Ww)
           if(PtiPtr!=PtjPtr)
             {
-              kappai=PtiPtr->_eKappa;
-              kappaj=PtjPtr->_eKappa;
+              if(SMOOTH)//use the smoothed epsilon & K
+                {
+                  kappai=PtiPtr->_eKappa;
+                  kappaj=PtjPtr->_eKappa;
+                }
 
-              kappai=Region._PartList[PtiPtr->_PID-1]._eKappa;
-              kappaj=Region._PartList[PtjPtr->_PID-1]._eKappa;
-              
-              //norm=(kappai+kappaj)*DeltaT*(PtiPtr->_ePhi-PtjPtr->_ePhi)*KnlPtr->_Ww;              
+              else
+                {
+                  kappai=Region._PartList[PtiPtr->_PID-1]._eKappa;
+                  kappaj=Region._PartList[PtjPtr->_PID-1]._eKappa;         
+                }
+             
+              // norm=(kappai+kappaj)*DeltaT*(PtiPtr->_ePhi-PtjPtr->_ePhi)*KnlPtr->_Ww;              
               //norm=2*kappai*DeltaT*(PtiPtr->_ePhi-PtjPtr->_ePhi)*KnlPtr->_Ww;
+
               if(ISZERO(kappai)||ISZERO(kappaj))
                 norm=0;
               else
@@ -1099,12 +1101,18 @@ void CSPHEHD::Solve3(CRegion & Region, unsigned int Timesteps)
 
           if(PtiPtr!=PtjPtr)
             {
-              // //use epsilon not smoothed
-              epsiloni=Region._PartList[PtiPtr->_PID-1]._eEpsilon;
-              epsilonj=Region._PartList[PtjPtr->_PID-1]._eEpsilon;
-              
-              // epsiloni=PtiPtr->_eEpsilon;
-              // epsilonj=PtjPtr->_eEpsilon;
+
+              if(SMOOTH)
+                {
+                  epsiloni=PtiPtr->_eEpsilon;
+                  epsilonj=PtjPtr->_eEpsilon;
+                }
+              //use epsilon not smoothed
+              else
+                {                  
+                  epsiloni=Region._PartList[PtiPtr->_PID-1]._eEpsilon;
+                  epsilonj=Region._PartList[PtjPtr->_PID-1]._eEpsilon;
+                }
               
               normx=(epsilonj-epsiloni)*KnlPtr->_Wx;
               normy=(epsilonj-epsiloni)*KnlPtr->_Wy;
@@ -1155,6 +1163,563 @@ void CSPHEHD::Solve3(CRegion & Region, unsigned int Timesteps)
   cout<<"----------------------------------------------"<<endl;
 }
 
+void CSPHEHD::Solve4(CRegion & Region, unsigned int Timesteps)
+{
+  CSPHPt * PtiPtr,*PtjPtr;
+  CBasePt * BasePtPtr;
+  CKnl * KnlPtr;
+  double epsiloni, epsilonj;//epsilon of part
+  double kappai, kappaj;//kappa of part
+  double norm;
+  double normx,normy;
+
+  double normx1,normy1;
+  double Ex,Ey;
+  double Exi,Exj,Eyi,Eyj;
+  unsigned int IDi,IDj;  
+  unsigned int ID,ID2;
+
+  //1.update eepsilon and ekappa
+  //Lopez 2011 use an interpolation scheme to calculate transition value between the two fluid with VOF colour
+  //here we try an direct interpolation using SPH, just like the interpolation of color 
+  for (unsigned int i=0;i!=Region._PtPairList.size();i++)
+    {
+      // if(Region._PtPairList[i]._Type!=enSphbndptpair&&Region._PtPairList[i]._Type!=enSPHDumPtPair)
+      {
+        PtiPtr=(CSPHPt*)Region._PtPairList[i]._PtiPtr;
+        PtjPtr=(CSPHPt*)Region._PtPairList[i]._PtjPtr;
+        KnlPtr=&Region._KnlList[i];
+
+        epsiloni=Region._PartList[PtiPtr->_PID-1]._eEpsilon;
+        epsilonj=Region._PartList[PtjPtr->_PID-1]._eEpsilon;
+
+        kappai=Region._PartList[PtiPtr->_PID-1]._eKappa;
+        kappaj=Region._PartList[PtjPtr->_PID-1]._eKappa;
+
+        if(PtiPtr->_Type==enSPHPt)
+          {
+            PtiPtr->_eEpsilon+=PtjPtr->_mrho*KnlPtr->_W*epsilonj;
+
+            PtiPtr->_eKappa+=PtjPtr->_mrho*KnlPtr->_W*kappaj;
+          }
+        
+        if(PtjPtr->_Type==enSPHPt)         
+          {
+            if(PtiPtr!=PtjPtr)
+              {
+                PtjPtr->_eEpsilon+=PtiPtr->_mrho*KnlPtr->_W*epsiloni;
+
+                PtjPtr->_eKappa+=PtiPtr->_mrho*KnlPtr->_W*kappai;
+              }
+          }
+
+        //for ehd dummy or ehd boundary particles
+        else
+          {
+            PtjPtr->_eEpsilon=epsilonj;
+            PtjPtr->_eKappa=kappaj;
+          }
+      }
+    }  
+
+  //interpolate Ex,Ey, Phie of ehd boundary particle from fluid particles
+  InterpEHDBndProperty(Region, Timesteps);
+
+  //intepolate phi of ehd dummy particles from fluid and ehd boundary particles
+  InterpEHDDumPropterty(Region, Timesteps);
+
+
+  //calculate grad K & grad epsilon
+  for(unsigned int i=0;i!=Region._PtList.size();++i)
+    {
+      BasePtPtr=&Region._PtList[i];
+
+      BasePtPtr->_geEpsilonx=0.0;
+      BasePtPtr->_geEpsilony=0.0;
+
+      BasePtPtr->_gKappax=0.0;
+      BasePtPtr->_gKappay=0.0;
+    }
+  
+  //caculate $/nabla /K$ and  $/nabla /epsilon
+  //grad(epsilon)i=sum(mj/rhoj*(epsilonj-epsiloni)*grad(W))
+  for(unsigned int i=0;i!=Region._PtPairList.size();++i)
+    {
+      if(Region._PtPairList[i]._Type==enSPHPtPair)
+        {
+          PtiPtr=(CSPHPt *)Region._PtPairList[i]._PtiPtr;
+          PtjPtr=(CSPHPt *)Region._PtPairList[i]._PtjPtr;
+
+          KnlPtr=&Region._KnlList[i];
+ 
+          if(PtiPtr!=PtjPtr)
+            {
+              if(SMOOTH)//use the smoothed epsilon & K
+                {
+                  epsiloni=PtiPtr->_eEpsilon;
+                  epsilonj=PtjPtr->_eEpsilon;
+                  kappai=PtiPtr->_eKappa;
+                  kappaj=PtjPtr->_eKappa;
+                }
+
+              else
+                {
+                  epsiloni=Region._PartList[PtiPtr->_PID-1]._eEpsilon;
+                  epsilonj=Region._PartList[PtjPtr->_PID-1]._eEpsilon;
+                  kappai=Region._PartList[PtiPtr->_PID-1]._eKappa;
+                  kappaj=Region._PartList[PtjPtr->_PID-1]._eKappa;         
+                }
+          
+              PtiPtr->_geEpsilonx+=PtjPtr->_mrho*(epsilonj-epsiloni)*KnlPtr->_Wx;
+              PtiPtr->_geEpsilony+=PtjPtr->_mrho*(epsilonj-epsiloni)*KnlPtr->_Wy;
+
+              PtiPtr->_gKappax+=PtjPtr->_mrho*(kappaj-kappai)*KnlPtr->_Wx;
+              PtiPtr->_gKappay+=PtjPtr->_mrho*(kappaj-kappai)*KnlPtr->_Wy;
+
+              PtjPtr->_geEpsilonx+=PtiPtr->_mrho*(epsilonj-epsiloni)*KnlPtr->_Wx;
+              PtjPtr->_geEpsilony+=PtiPtr->_mrho*(epsilonj-epsiloni)*KnlPtr->_Wy;
+
+              PtjPtr->_gKappax+=PtiPtr->_mrho*(kappaj-kappai)*KnlPtr->_Wx;
+              PtjPtr->_gKappay+=PtiPtr->_mrho*(kappaj-kappai)*KnlPtr->_Wy;
+            }
+        }      
+    }
+
+  //2.calulate phi n+1, construct A(phi n+1)=b, nabla((K*deltaT+epsilon)*nabla(phi n+1))=-rhoe n
+  //---------------------------------------------------------------------------------------------------
+  //use laspack to solve linear equ.
+  unsigned int PtNum=Region._CalList.size();//the number used to initializae the size of linear equation
+  QMatrix LasA;//laspack amtrix A
+  Vector Lasx,Lasb;//laspack vector, not std vector
+  size_t Dim=PtNum;
+
+  char namea[]="A";
+  char namex[]="x";
+  char nameb[]="b";
+  Q_Constr(&LasA, namea, Dim , False , Rowws, Normal , True );
+  V_Constr(&Lasx, namex, Dim, Normal, True);
+  V_Constr(&Lasb, nameb, Dim, Normal, True);
+
+  //set the length of LasA, after q_setlen, element will be set to 0
+  //for i, some neighbor will not involved in calculation (if neighbor j is dumpt or not in calculate range)
+  //so the length of row may larger than the element number, but it does not influence the result of Ax=b
+  for(unsigned int i=0;i!=Region._CalList.size();++i)
+    {
+      BasePtPtr=&Region._PtList[Region._CalList[i]];
+
+      Q_SetLen(&LasA, BasePtPtr->_ID2, BasePtPtr->_NumNegbor);
+
+      Q_SetEntry(&LasA, BasePtPtr->_ID2, 0, BasePtPtr->_ID2, 0.0);//set the first one of row as i-i element
+    }
+  //set all components of lasvector 0
+  V_SetAllCmp(&Lasb, 0.0);
+
+  //initilize laspack matrix A and vector b, done
+  //---------------------------------------------------------------------------------------------------------------------
+
+  //3.1.2 contruct and solve Ax=b
+  // construct A(phi n+1)=b, nabla((K*deltaT+epsilon)*nabla(phi n+1))=-rhoe n
+  for(unsigned int i=0;i!=Region._CalList.size();++i)
+    {
+      BasePtPtr=&Region._PtList[Region._CalList[i]];
+      V_AddCmp(&Lasb, BasePtPtr->_ID2, -BasePtPtr->_eRho);
+      // V_AddCmp(&Lasb, BasePtPtr->_ID2, 0.0);///////////////!!!!!!!!!!!!!!!!!temp, for the case epsilon=0
+    }
+
+  vector<unsigned int> icount;//element number of each row
+  icount.resize(PtNum,1);//there is one element now, i-i, the first one of each row
+  double DeltaT;
+  DeltaT=Region._ControlSPH._DeltaT;
+  for(unsigned int i=0;i<Region._PtPairList.size();i++)
+    {
+      if(Region._PtPairList[i]._Type==enSPHPtPair
+         ||Region._PtPairList[i]._Type==enSPHEHDBndPtPair
+         ||Region._PtPairList[i]._Type==enSPHEHDDumPtPair)
+        {
+          PtiPtr=(CSPHPt*)Region._PtPairList[i]._PtiPtr;
+          PtjPtr=(CSPHPt*)Region._PtPairList[i]._PtjPtr;
+          KnlPtr=&Region._KnlList[i];
+
+          //as (phi i-phi j ) is calculated,  so ptiptr=ptjptr makes no sense
+          if(PtiPtr!=PtjPtr)
+            {
+              IDi=PtiPtr->_ID2;
+              IDj=PtjPtr->_ID2;
+
+              if(SMOOTH)//use the smoothed epsilon & K
+                {
+                  epsiloni=PtiPtr->_eEpsilon;
+                  epsilonj=PtjPtr->_eEpsilon;
+
+                  kappai=PtiPtr->_eKappa;
+                  kappaj=PtjPtr->_eKappa; 
+                }
+
+              else
+                {
+                  epsiloni=Region._PartList[PtiPtr->_PID-1]._eEpsilon;//epsilon not smoothed
+                  epsilonj=Region._PartList[PtjPtr->_PID-1]._eEpsilon;
+
+                  kappai=Region._PartList[PtiPtr->_PID-1]._eKappa;//kappa not smoothed
+                  kappaj=Region._PartList[PtjPtr->_PID-1]._eKappa;
+                }
+
+              if(SECORDFORM==1)
+                {
+                  norm=(kappai*DeltaT+epsiloni+kappaj*DeltaT+epsilonj)*KnlPtr->_Ww;
+                }
+              else if(SECORDFORM==2)
+                {
+                  norm=4*(kappai*DeltaT+epsiloni)*(kappaj*DeltaT+epsilonj)/(kappai*DeltaT+epsiloni+kappaj*DeltaT+epsilonj)*KnlPtr->_Ww;
+                }
+              else if(SECORDFORM==21)
+                {
+                  if(ISZERO(kappai+kappaj))
+                    norm=(4*epsiloni*epsilonj/(epsiloni+epsilonj))*KnlPtr->_Ww;
+                  else
+                    norm=(4*kappai*kappaj*DeltaT/(kappai+kappaj)+4*epsiloni*epsilonj/(epsiloni+epsilonj))*KnlPtr->_Ww;
+                }
+              else //SECORDFORM==3
+                {
+                  norm=2*(kappai*DeltaT+epsiloni)*KnlPtr->_Ww;
+                  norm-=(PtiPtr->_gKappax*DeltaT+PtiPtr->_geEpsilonx)*KnlPtr->_Wx
+                    +(PtiPtr->_gKappay*DeltaT+PtiPtr->_geEpsilony)*KnlPtr->_Wy;
+                }
+            
+              
+              Q_AddVal(&LasA, IDi, 0, PtjPtr->_mrho*norm);//the first one in row is i i
+
+              if(PtjPtr->_Type==enSPHPt)
+                {
+                  icount[IDi-1]++;
+
+                  Q_SetEntry(&LasA, IDi, icount[IDi-1]-1, IDj, -PtjPtr->_mrho*norm);
+
+                  icount[IDj-1]++;
+
+                  if(SECORDFORM==3)
+                    {
+                      norm=2*(kappaj*DeltaT+epsilonj)*KnlPtr->_Ww;
+                      norm+=(PtjPtr->_gKappax*DeltaT+PtjPtr->_geEpsilonx)*KnlPtr->_Wx
+                        +(PtjPtr->_gKappay*DeltaT+PtjPtr->_geEpsilony)*KnlPtr->_Wy;
+                    }
+                  Q_AddVal(&LasA, IDj, 0, PtiPtr->_mrho*norm);//the first one in row j-j
+                  Q_SetEntry(&LasA, IDj, icount[IDj-1]-1, IDi, -PtiPtr->_mrho*norm);
+                }
+
+              //ptjptr is a ehd dummy or ehd boundary particle
+              else
+                {
+                  V_AddCmp(&Lasb, IDi, PtjPtr->_mrho*norm*PtjPtr->_ePhi);
+                }
+            }
+        }
+    }
+  icount.clear();
+
+  SetRTCAccuracy(1e-8);
+  //set the initial value using the previous timestep value
+  for(unsigned int i=0;i!=Region._CalList.size();++i)
+    {
+      BasePtPtr=&Region._PtList[Region._CalList[i]];
+      V_SetCmp(&Lasx, BasePtPtr->_ID2, BasePtPtr->_ePhi);
+    }
+  // V_SetAllCmp(&Lasx, 0.0);//initial value 0
+
+  BiCGSTABIter(&LasA, &Lasx, &Lasb, 100, SSORPrecond,1.2);//the 4th parameter 100, is the maxiter steps
+
+  //BiCGIter(&LasA, &Lasx, &Lasb, 100, SSORPrecond,1.2);
+  // outputV( Lasx,  "xxbicgs-20");
+  //output2(LasA, Lasx, Lasb, "xxbicgs-ax=b");
+
+  //set φ of particle from b
+  for(unsigned int i=0;i!=Region._CalList.size();++i)
+    {
+      BasePtPtr=&Region._PtList[Region._CalList[i]];
+
+      BasePtPtr->_ePhi=V_GetCmp(&Lasx, BasePtPtr->_ID2);
+    }
+
+  Q_Destr(&LasA);
+  V_Destr(&Lasx);
+  V_Destr(&Lasb);
+
+
+  //calculate E n+1=-grad(phi n+1)
+  //---------------------------------------------------------------------------------------------------------------------
+  //3.2 calculate E using CSPM, as the dirct scheme produce unacceptable errors
+  //3.2.1 cspm coefficient matrix
+  if(Region._ControlSPH._CSPMIflag2!=2)
+    {
+      _CSPMEHD.GetCSPMGradCorctCoef2(Region);//dummy particle involved
+    }
+
+  // //3.2.2 cspm source term for E=grad(phi)
+  vector<double> bx;//CSPM修正的源项
+  vector<double> by;
+  bx.resize(Region._CalList.size(),0.0);
+  by.resize(Region._CalList.size(),0.0);
+  for(unsigned int i=0;i<Region._PtPairList.size();i++)
+    {
+      if(Region._PtPairList[i]._Type==enSPHPtPair
+         ||Region._PtPairList[i]._Type==enSPHEHDBndPtPair
+         ||Region._PtPairList[i]._Type==enSPHEHDDumPtPair)
+        {
+          PtiPtr=(CSPHPt*)Region._PtPairList[i]._PtiPtr;
+          PtjPtr=(CSPHPt*)Region._PtPairList[i]._PtjPtr;
+          KnlPtr=&Region._KnlList[i];
+
+          IDi=PtiPtr->_ID2;
+          IDj=PtjPtr->_ID2;
+
+          if(PtiPtr!=PtjPtr)
+            {
+              bx[IDi-1]+=PtjPtr->_mrho*(PtiPtr->_ePhi-PtjPtr->_ePhi)*KnlPtr->_Wx;
+              by[IDi-1]+=PtjPtr->_mrho*(PtiPtr->_ePhi-PtjPtr->_ePhi)*KnlPtr->_Wy;
+
+              //particle j
+              if(PtjPtr->_Type==enSPHPt)
+                {
+                  bx[IDj-1]+=PtiPtr->_mrho*(PtiPtr->_ePhi-PtjPtr->_ePhi)*KnlPtr->_Wx;
+                  by[IDj-1]+=PtiPtr->_mrho*(PtiPtr->_ePhi-PtjPtr->_ePhi)*KnlPtr->_Wy;
+                }
+            }
+        }
+    }
+
+  //calculate CSPM corrected E=grad(phi)
+  for(unsigned int i=0;i!=Region._CalList.size();++i)
+    {
+      BasePtPtr=&Region._PtList[Region._CalList[i]];
+      ID2=BasePtPtr->_ID2;
+
+      BasePtPtr->_eEx=-(BasePtPtr->_CSPMAxx*bx[ID2-1]+BasePtPtr->_CSPMAyx*by[ID2-1]);
+      BasePtPtr->_eEy=-(BasePtPtr->_CSPMAxy*bx[ID2-1]+BasePtPtr->_CSPMAyy*by[ID2-1]);
+    }
+
+  bx.clear();
+  by.clear();
+  //---------------------------------------------------------------------------
+
+  //drhoe n+1=nabla*((k*deltaT)*nabla(phi n+1))
+  DeltaT=Region._ControlSPH._DeltaT;
+  if (CALDRHOE)
+    {
+      if(SECORDFORM==9993)
+        {
+          for(unsigned int i=0;i!=Region._PtList.size();++i)
+            {
+              BasePtPtr=&Region._PtList[i];
+              if(BasePtPtr->_Type==enSPHPt)
+                {
+                  BasePtPtr->_deRho=-(BasePtPtr->_eEx*BasePtPtr->_gKappax*DeltaT+BasePtPtr->_eEy*BasePtPtr->_gKappay*DeltaT);
+                }
+              else
+                {
+                  BasePtPtr->_deRho=0.0;
+                }
+            }
+        }
+
+      for(unsigned int i=0;i<Region._PtPairList.size();i++)
+        {
+          if(Region._PtPairList[i]._Type==enSPHPtPair
+             ||Region._PtPairList[i]._Type==enSPHEHDBndPtPair
+             ||Region._PtPairList[i]._Type==enSPHEHDDumPtPair)
+            {
+              PtiPtr=(CSPHPt*)Region._PtPairList[i]._PtiPtr;
+              PtjPtr=(CSPHPt*)Region._PtPairList[i]._PtjPtr;
+              KnlPtr=&Region._KnlList[i];
+
+              //drhoei=-sum(mj/rhoj*(ki+kj)*DeltaT*(phii-phij)*Ww)
+               if(PtiPtr!=PtjPtr)
+                 {
+                   if(SMOOTH)//use the smoothed epsilon & K
+                     {
+                       kappai=PtiPtr->_eKappa;
+                       kappaj=PtjPtr->_eKappa;
+                     }
+
+                   else
+                     {
+                       kappai=Region._PartList[PtiPtr->_PID-1]._eKappa;
+                       kappaj=Region._PartList[PtjPtr->_PID-1]._eKappa;         
+                     }
+
+                   if(SECORDFORM==1)
+                     {
+                       norm=(kappai+kappaj)*DeltaT*(PtiPtr->_ePhi-PtjPtr->_ePhi)*KnlPtr->_Ww;
+                     }
+
+                   // if(SECORDFORM==2)
+                   {
+                     if(ISZERO(kappai)||ISZERO(kappaj))
+                       norm=0;
+                     else
+                       norm=4*kappai*kappaj*DeltaT/(kappai+kappaj)*(PtiPtr->_ePhi-PtjPtr->_ePhi)*KnlPtr->_Ww;
+}
+                  
+
+                    if(SECORDFORM==9993)
+                      {
+                        ///*nabla(/cdot K /nabla /phi)=K /nabla /cdot /nabla /phi+(/nabla K) /cdot (/nabla /phi)
+                        PtiPtr->_deRho+=PtjPtr->_mrho*2*kappai*DeltaT*(PtiPtr->_ePhi-PtjPtr->_ePhi)*KnlPtr->_Ww;
+                      }
+                   else
+                     {
+                       PtiPtr->_deRho+=PtjPtr->_mrho*norm;
+                     }
+                   
+                   if(PtjPtr->_Type==enSPHPt)
+                    {
+                     
+                      if(SECORDFORM==9993)
+                        {
+                          PtjPtr->_deRho+=PtiPtr->_mrho*2*kappaj*DeltaT*(PtjPtr->_ePhi-PtiPtr->_ePhi)*KnlPtr->_Ww;
+                        }
+                      else
+                        {
+                          PtjPtr->_deRho-=PtiPtr->_mrho*norm;
+                        }
+                    }            
+                 }
+            }
+        } 
+
+      //caculate Rhoe
+      for(unsigned int i=0;i!=Region._CalList.size();++i)
+        {
+          BasePtPtr=&Region._PtList[Region._CalList[i]];
+
+          // if(ISZERO(BasePtPtr->_eKappa))
+          //   {
+          //     BasePtPtr->_deRho=0.0;
+          //   }
+
+          BasePtPtr->_eRho+=BasePtPtr->_deRho;
+        }
+    }
+
+  //CALDRHOE=0, calculate rhoe directly, \nabla (\cdot \epsilon \nabla \phi^(n+1))=-\rhoe n+1
+  if(!CALDRHOE)
+    {
+      if(SECORDFORM==3)
+        {
+          for(unsigned int i=0;i!=Region._PtList.size();++i)
+            {
+              BasePtPtr=&Region._PtList[i];
+
+              if(BasePtPtr->_Type==enSPHPt)
+                {
+                  BasePtPtr->_eRho=BasePtPtr->_eEx*BasePtPtr->_geEpsilonx+BasePtPtr->_eEy*BasePtPtr->_geEpsilony;
+                }
+              else
+                {
+                  Region._PtList[i]._eRho=0.0; 
+                }         
+            }
+        }
+      DeltaT=Region._ControlSPH._DeltaT;
+    
+      for(unsigned int i=0;i<Region._PtPairList.size();i++)
+        {
+          if(Region._PtPairList[i]._Type==enSPHPtPair
+             ||Region._PtPairList[i]._Type==enSPHEHDBndPtPair
+             ||Region._PtPairList[i]._Type==enSPHEHDDumPtPair)
+            {
+              PtiPtr=(CSPHPt*)Region._PtPairList[i]._PtiPtr;
+              PtjPtr=(CSPHPt*)Region._PtPairList[i]._PtjPtr;
+              KnlPtr=&Region._KnlList[i];
+
+             
+              if(PtiPtr!=PtjPtr)
+                {
+                  if(SMOOTH)//use the smoothed epsilon & K
+                    {
+                      epsiloni=PtiPtr->_eEpsilon;
+                      epsilonj=PtjPtr->_eEpsilon;
+                    }
+
+                  else
+                    {
+                      epsiloni=Region._PartList[PtiPtr->_PID-1]._eEpsilon;
+                      epsilonj=Region._PartList[PtjPtr->_PID-1]._eEpsilon;         
+                    }
+                  
+                  //rhoe n+1=-sum(mj/rhoj*(epsiloni+epsilonj)*(phii-phij)*Ww)
+                  if(SECORDFORM==1)
+                    {
+                      norm=(epsiloni+epsilonj)*(PtiPtr->_ePhi-PtjPtr->_ePhi)*KnlPtr->_Ww;
+                      PtiPtr->_eRho-=PtjPtr->_mrho*norm;
+                    }
+                  //rhoe n+1=-sum(mj/rhoj*4*epsiloni*epsilonj/(epsiloni+epsilonj)*(phii-phij)*Ww)
+                  if (SECORDFORM==2)
+                    {
+                      if(ISZERO(epsiloni)||ISZERO(epsilonj))
+                        norm=0;
+                      else
+                        norm=4*epsiloni*epsilonj/(epsiloni+epsilonj)*(PtiPtr->_ePhi-PtjPtr->_ePhi)*KnlPtr->_Ww;
+                      
+                      PtiPtr->_eRho-=PtjPtr->_mrho*norm;
+                    }
+
+                  if(SECORDFORM==3)
+                    {
+                      PtiPtr->_eRho-= 2*epsiloni*PtjPtr->_mrho*(PtiPtr->_ePhi-PtjPtr->_ePhi)*KnlPtr->_Ww;
+                    }
+                          
+                  if(PtjPtr->_Type==enSPHPt)
+                    {
+                      if(SECORDFORM==1||SECORDFORM==2)
+                        {
+                          PtjPtr->_eRho+=PtiPtr->_mrho*norm;
+                        }
+                      if(SECORDFORM==3)
+                        {
+                          PtjPtr->_eRho-= 2*epsilonj*PtiPtr->_mrho*(PtjPtr->_ePhi-PtiPtr->_ePhi)*KnlPtr->_Ww;
+                        }
+                    }            
+                }
+            }
+        } 
+    }
+
+  //3.3 calculate the accelerate caused by ehd force
+  //use equ 11, since the derivative of E is unaccruate and formulation of Lopez 2011 equ32 produced poor results
+  //Fe=rhoe*E-1/2*E^2*grad(epsilon)
+ 
+  double ModE2;
+  for(unsigned int i=0;i!=Region._CalList.size() ;++i)
+    {
+      BasePtPtr=&Region._PtList[ID=Region._CalList[i]];
+
+      Ex=BasePtPtr->_eEx;
+      Ey=BasePtPtr->_eEy;
+
+      ModE2=Ex*Ex+Ey*Ey;
+      
+      BasePtPtr->_Fex=-0.5*ModE2*BasePtPtr->_geEpsilonx;
+      BasePtPtr->_Fey=-0.5*ModE2*BasePtPtr->_geEpsilony;
+
+      BasePtPtr->_Fex+=BasePtPtr->_eRho*Ex;
+      BasePtPtr->_Fey+=BasePtPtr->_eRho*Ey;
+
+      BasePtPtr->_du+=1/BasePtPtr->_rho*BasePtPtr->_Fex;
+      BasePtPtr->_dv+=1/BasePtPtr->_rho*BasePtPtr->_Fey;
+    }
+
+  CKFile kfiletemp;
+  // kfiletemp.outTecplotEHDPLANNER(Region,Timesteps,"xxehd-case3");
+  if(Timesteps==0||((Timesteps+1)%Region._ControlSPH._OutputSteps)==0)
+    {
+      // kfiletemp.outTecplotEHDPLANAR(Region, Timesteps+1,"xx"+Region._ControlSPH._InfileName);
+      //kfiletemp.outTecplotEHDDrop(Region, Timesteps+1,"xx"+Region._ControlSPH._InfileName);
+      kfiletemp.outTecplotIsoCondCylinder(Region, Timesteps+1,"xx"+Region._ControlSPH._InfileName);
+      //kfiletemp.outTecplotEHDBulkRelax(Region, Timesteps+1,"xx"+Region._ControlSPH._InfileName);
+    }
+
+  cout<<"----------------------------------------------"<<endl;
+}
 
 //interpolate phi of ehd dummy particle from ehd dummy and fluid particles
 void CSPHEHD::InterpEHDDumPropterty(CRegion & Region, unsigned int TimeSteps)
@@ -1495,32 +2060,32 @@ void CSPHEHD::output2(QMatrix & a, Vector & x, Vector & b ,string outputname)
   }
 
 
-  void CSPHEHD::outputV(Vector & x ,string outputname)
-  {
+void CSPHEHD::outputV(Vector & x ,string outputname)
+{
 
-    ofstream outfile;
-    ostringstream outfilename;
-    outfilename<<outputname<<".dat";
-    outfile.open(outfilename.str().data(),ios::out);
+  ofstream outfile;
+  ostringstream outfilename;
+  outfilename<<outputname<<".dat";
+  outfile.open(outfilename.str().data(),ios::out);
 
-    if (!outfile)
-      {
-        cerr<<"Out put file could not be open."<<endl<<"tecplot.dat"<<endl;
-        return;
-      }
+  if (!outfile)
+    {
+      cerr<<"Out put file could not be open."<<endl<<"tecplot.dat"<<endl;
+      return;
+    }
 
-    size_t n=V_GetDim(&x);
-    for (size_t i=0;i<n;i++)
-      {
-        outfile
-          <<setiosflags(ios_base::scientific)
-          <<setprecision(16)
-          <<setw(26)<<V_GetCmp(&x, i+1)<<" "
-          <<endl;
-      }
+  size_t n=V_GetDim(&x);
+  for (size_t i=0;i<n;i++)
+    {
+      outfile
+        <<setiosflags(ios_base::scientific)
+        <<setprecision(16)
+        <<setw(26)<<V_GetCmp(&x, i+1)<<" "
+        <<endl;
+    }
 
 
-    cout<<outputname<<" file has been written."<<endl;
+  cout<<outputname<<" file has been written."<<endl;
 
-    outfile.close();
-  }
+  outfile.close();
+}

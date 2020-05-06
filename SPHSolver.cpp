@@ -15,11 +15,13 @@ void CSPHSolver::Input()
 	_Region._ControlSPH._InfileName=
 		/*"static tank"*/
 		// "Lid_driven";
-    //"ehdplanercase3";
-    //  "EHDBulkRelax";
-    //  "EHDIsoCondCylinder";
-  "ehddrop";
-  //"dambreak-ETSIN-3";
+    // "ehdplanercase3";
+    // "ehdplanarcase2-3layer-3";
+    // "ehdplanarcase2-dropin-2";
+    // "EHDBulkRelax";
+    "EHDIsoCondCylinder";
+    // "ehddrop";
+    //"dambreak-ETSIN-3";
   //"dambreak-han";
   /*"shelldrop"*/
   //"movedrop";
@@ -30,10 +32,12 @@ void CSPHSolver::Input()
 
 	_KFile.Input(_Region);
 
-  //_Model.EHDPlannar(_Region);//model of ehd plannar, lopez 2011 4.1
+  // _Model.EHDPlanar(_Region);//model of ehd plannar, lopez 2011 4.1
+  //_Model.EHDPlanar3layers(_Region);//changed from ehd planar case, 3 layers
+  // _Model.EHDPlanardropin(_Region);//evolved from ehd planar case with 3 layers, replace the moddile layer with a drop
   // _Model.EHDBulkRelax(_Region);//model of ehd bulk relaxation, lopez 2011 4.2.1
-  //_Model.EHDIsoCondCylinder(_Region);//model of ehd isolated conduction cylinder
-  _Model.EHDDrop(_Region);//model of ehd droplet, lopezf 2011 4.3
+  _Model.EHDIsoCondCylinder(_Region);//model of ehd isolated conduction cylinder
+  // _Model.EHDDrop(_Region);//model of ehd droplet, lopez 2011 4.3
 
   // _CalBndNorm.Solve(_Region);//用类似CSF模型的方法计算边界粒子的法向
 
